@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { LinkButton } from "@/components/LinkButton";
 
 // Welcome - logo, one primary and one secondary action, nothing else.
 export default function WelcomePage() {
@@ -19,18 +20,10 @@ export default function WelcomePage() {
         </div>
 
         <div className="flex flex-col gap-3 pb-10">
-          <Link
-            href="/login"
-            className="flex min-h-[var(--spacing-touch)] w-full items-center justify-center rounded-xl bg-brand px-6 text-[19px] font-bold text-white hover:bg-brand-dark"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            className="flex min-h-[var(--spacing-touch)] w-full items-center justify-center rounded-xl border-2 border-brand bg-white px-6 text-[19px] font-bold text-brand hover:bg-surface"
-          >
+          <LinkButton href="/login">Sign in</LinkButton>
+          <LinkButton href="/signup" variant="secondary">
             Create account
-          </Link>
+          </LinkButton>
           <Link
             href="/admin"
             className="mt-2 flex min-h-[48px] w-full items-center justify-center text-[18px] font-bold text-ink-soft hover:text-ink"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/Field";
@@ -15,6 +15,7 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +27,9 @@ export default function AdminLoginPage() {
       return;
     }
     loginAdmin();
-    router.push("/admin/approvals");
+    startTransition(() => {
+      router.push("/admin/approvals");
+    });
   }
 
   return (
@@ -52,7 +55,9 @@ export default function AdminLoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={error}
         />
-        <Button type="submit">Sign in</Button>
+        <Button type="submit" loading={isPending} loadingLabel="Signing in…">
+          Sign in
+        </Button>
         <Note>
           Demo login - email <b>{SEED_ADMIN.email}</b>, password{" "}
           <b>{ADMIN_PASSWORD}</b>.

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Screen } from "@/components/Screen";
 import { TextField, SelectField } from "@/components/Field";
 import { Button } from "@/components/Button";
+import { LinkButton } from "@/components/LinkButton";
 import { Note } from "@/components/Note";
 import { CameraCapture } from "@/components/CameraCapture";
 import { Stamp } from "@/components/Stamp";
@@ -118,12 +118,7 @@ export default function SignupPage() {
             </p>
           </Note>
           <div className="mt-7 w-full">
-            <Link
-              href="/login"
-              className="flex min-h-[var(--spacing-touch)] w-full items-center justify-center rounded-xl bg-brand px-6 text-[19px] font-bold text-white hover:bg-brand-dark"
-            >
-              Back to sign in
-            </Link>
+            <LinkButton href="/login">Back to sign in</LinkButton>
           </div>
         </div>
       </Screen>

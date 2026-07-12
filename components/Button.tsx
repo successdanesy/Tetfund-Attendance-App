@@ -1,12 +1,17 @@
 "use client";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { Spinner } from "./Spinner";
 
 type Variant = "primary" | "secondary" | "danger";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
   fullWidth?: boolean;
+  // While true the button shows a spinner, disables itself, and can't be
+  // double-tapped - immediate feedback that a tap registered.
+  loading?: boolean;
+  loadingLabel?: string;
   children: ReactNode;
 };
 
@@ -27,16 +32,22 @@ const variants: Record<Variant, string> = {
 export function Button({
   variant = "primary",
   fullWidth = true,
+  loading = false,
+  loadingLabel,
   className = "",
   children,
+  disabled,
   ...rest
 }: ButtonProps) {
   return (
     <button
       className={`${base} ${variants[variant]} ${fullWidth ? "w-full" : ""} ${className}`}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...rest}
     >
-      {children}
+      {loading && <Spinner />}
+      {loading ? (loadingLabel ?? children) : children}
     </button>
   );
 }

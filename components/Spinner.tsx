@@ -1,0 +1,37 @@
+// A small, universally-understood loading spinner. Uses motion-safe so it
+// stays still (a static ring) for people who prefer reduced motion - pair it
+// with visible text so the meaning never depends on the animation alone.
+export function Spinner({
+  size = 22,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      role="status"
+      aria-label="Loading"
+      className={`motion-safe:animate-spin ${className}`}
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        stroke="currentColor"
+        strokeWidth="3"
+        opacity="0.25"
+      />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

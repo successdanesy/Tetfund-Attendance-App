@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/Field";
@@ -14,6 +14,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  // isPending stays true from the tap until the Home screen has loaded.
+  const [isPending, startTransition] = useTransition();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,7 +26,9 @@ export default function LoginPage() {
       );
       return;
     }
-    router.push("/home");
+    startTransition(() => {
+      router.push("/home");
+    });
   }
 
   return (
@@ -52,7 +56,9 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={error}
         />
-        <Button type="submit">Sign in</Button>
+        <Button type="submit" loading={isPending} loadingLabel="Signing in…">
+          Sign in
+        </Button>
       </form>
     </Screen>
   );

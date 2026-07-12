@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Screen } from "@/components/Screen";
+import { LinkButton } from "@/components/LinkButton";
 import { BottomNav } from "@/components/BottomNav";
 import { Note } from "@/components/Note";
 import { Stamp } from "@/components/Stamp";
@@ -64,12 +64,9 @@ export default function HomePage() {
               You haven&apos;t clocked in yet today. When you&apos;re at the
               office, tap below to mark yourself present.
             </p>
-            <Link
-              href="/clock-in"
-              className="flex min-h-[72px] w-full items-center justify-center rounded-2xl bg-brand px-6 text-[22px] font-bold text-white hover:bg-brand-dark"
-            >
+            <LinkButton href="/clock-in" size="large">
               Clock in for today
-            </Link>
+            </LinkButton>
           </div>
         )}
       </Screen>
