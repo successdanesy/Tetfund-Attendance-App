@@ -9,7 +9,13 @@ import type {
   Staff,
   StaffStatus,
 } from "./types";
-import { SEED_DEPARTMENTS, SEED_ADMIN, ADMIN_PASSWORD } from "./seed";
+import {
+  SEED_DEPARTMENTS,
+  SEED_ADMIN,
+  ADMIN_PASSWORD,
+  SEED_DEMO_STAFF,
+  DEMO_PASSWORD,
+} from "./seed";
 import { checkGeofence } from "./geo";
 import { canClockIn } from "./access";
 
@@ -18,7 +24,11 @@ import { canClockIn } from "./access";
 // `id` on the way out and never leak password hashes to the client.
 // ---------------------------------------------------------------------------
 
-type StaffDoc = Omit<Staff, "id"> & { _id: string; passwordHash: string };
+type StaffDoc = Omit<Staff, "id"> & {
+  _id: string;
+  passwordHash: string;
+  isDemo?: boolean;
+};
 type AttendanceDoc = Omit<AttendanceRecord, "id"> & { _id: string };
 type AdminDoc = Omit<AdminUser, "id"> & { _id: string; passwordHash: string };
 type DepartmentDoc = { _id: string; name: string };
@@ -38,9 +48,28 @@ async function collections() {
 }
 
 function toStaff(doc: StaffDoc): Staff {
-  const { _id, passwordHash: _hash, ...rest } = doc;
+  const { _id, passwordHash: _hash, isDemo: _demo, ...rest } = doc;
   void _hash;
+  void _demo;
   return { id: _id, ...rest };
+}
+
+// A simple initials avatar as an inline SVG data URL - used as the reference
+// photo for seeded demo staff so they have a face without a real photo.
+function avatarDataUrl(
+  firstName: string,
+  lastName: string,
+  bg: string,
+): string {
+  const initials =
+    `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "?";
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'>` +
+    `<rect width='256' height='256' fill='${bg}'/>` +
+    `<text x='50%' y='50%' dy='.35em' text-anchor='middle' ` +
+    `font-family='sans-serif' font-size='120' fill='white'>${initials}</text>` +
+    `</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 function toRecord(doc: AttendanceDoc): AttendanceRecord {
@@ -58,11 +87,12 @@ function startOfTodayIso(): string {
 
 let seeded = false;
 
-// Idempotent: safe to call on every request. Upserts departments, ensures the
-// admin exists with a hashed password, and creates the unique-email index.
-export async function ensureSeed(): Promise<void> {
-  if (seeded) return;
+// Idempotent seed of departments, admin, and demo staff. Always re-runnable
+// (upserts only), so reset can call it to restore the demo accounts.
+async function upsertSeed(): Promise<void> {
   const { departments, staff, admins } = await collections();
+
+  await staff.createIndex({ email: 1 }, { unique: true }).catch(() => {});
 
   await Promise.all(
     SEED_DEPARTMENTS.map((d) =>
@@ -74,18 +104,66 @@ export async function ensureSeed(): Promise<void> {
     ),
   );
 
-  const existingAdmin = await admins.findOne({ email: SEED_ADMIN.email });
-  if (!existingAdmin) {
-    await admins.insertOne({
-      _id: SEED_ADMIN.id,
-      email: SEED_ADMIN.email,
-      name: SEED_ADMIN.name,
-      passwordHash: await bcrypt.hash(ADMIN_PASSWORD, 10),
-    });
-  }
+  await admins.updateOne(
+    { _id: SEED_ADMIN.id },
+    {
+      $setOnInsert: {
+        email: SEED_ADMIN.email,
+        name: SEED_ADMIN.name,
+        passwordHash: await bcrypt.hash(ADMIN_PASSWORD, 10),
+      },
+    },
+    { upsert: true },
+  );
 
-  await staff.createIndex({ email: 1 }, { unique: true }).catch(() => {});
+  const demoHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  await Promise.all(
+    SEED_DEMO_STAFF.map((s) =>
+      staff.updateOne(
+        { _id: s.id },
+        {
+          $setOnInsert: {
+            email: s.email,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            departmentId: s.departmentId,
+            referencePhotoUrl: avatarDataUrl(
+              s.firstName,
+              s.lastName,
+              s.avatarColor,
+            ),
+            passwordHash: demoHash,
+            status: "approved",
+            isDemo: true,
+            createdAt: new Date().toISOString(),
+          },
+        },
+        { upsert: true },
+      ),
+    ),
+  );
+}
+
+// Called on every request but does the work only once per process.
+export async function ensureSeed(): Promise<void> {
+  if (seeded) return;
+  await upsertSeed();
   seeded = true;
+}
+
+export async function listDemoStaff(): Promise<Staff[]> {
+  await ensureSeed();
+  const { staff } = await collections();
+  const docs = await staff.find({ isDemo: true }).sort({ firstName: 1 }).toArray();
+  return docs.map(toStaff);
+}
+
+// Enter a demo account with a tap - only permitted for seeded `isDemo` staff,
+// so real accounts still require their password.
+export async function demoLogin(staffId: string): Promise<Staff | null> {
+  const { staff } = await collections();
+  const doc = await staff.findOne({ _id: staffId, isDemo: true });
+  return doc ? toStaff(doc) : null;
 }
 
 export async function getDepartments(): Promise<Department[]> {
@@ -249,8 +327,10 @@ export async function getAttendanceById(
   return doc ? toRecord(doc) : null;
 }
 
-// Wipe staff + attendance and re-seed, so a pitch can start from a clean slate.
+// Wipe staff + attendance, then restore the seeded demo accounts, so a pitch
+// can start from a clean slate that still has the tap-to-enter accounts.
 export async function resetDemo(): Promise<void> {
   const { staff, attendance } = await collections();
   await Promise.all([staff.deleteMany({}), attendance.deleteMany({})]);
+  await upsertSeed();
 }

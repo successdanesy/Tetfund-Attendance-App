@@ -33,8 +33,12 @@ the server; the signed-in user is remembered on the device.
 Use **Chrome on `localhost`** (or an HTTPS URL such as your Vercel deployment) -
 the camera and location APIs only work in a secure context.
 
-The first request seeds the database automatically: 5 departments and one admin
-(`admin@tetfund.gov.ng` / `admin`). No staff or attendance to start.
+The first request seeds the database automatically: 5 departments, one admin
+(`admin@tetfund.gov.ng` / `admin`), and 3 pre-approved **demo staff** shown on
+the sign-in screen. Presenters can tap a demo account to enter instantly - no
+sign-up needed - while real sign-up and password login still work. Only these
+seeded `isDemo` accounts can be tap-entered; real accounts always need a
+password. The demo accounts are restored whenever you *Reset demo data*.
 
 ## Deploying to Vercel
 
@@ -48,10 +52,12 @@ phone there with no extra setup.
 
 ## Live demo script
 
-1. **Sign up** - from the welcome screen, tap *Create account* and walk the
-   5-step wizard: work email (try a `@gmail.com` address first to show it being
-   rejected), name, department, password, and a reference selfie. Ends on
-   *Account created - pending approval*.
+1. **Fastest path** - on the sign-in screen, tap a demo staff member to enter
+   as them and go straight to clocking in. To show the full journey instead,
+   tap *Create account* and walk the 5-step wizard: work email (try a
+   `@gmail.com` address first to show it being rejected), name, department,
+   password, and a reference selfie. Ends on *Account created - pending
+   approval*.
 2. **Admin approves** - tap *Administrator sign in* (`admin@tetfund.gov.ng` /
    `admin`) and approve the new account under *Approvals*. Because data is now
    persisted, you can sign up on a phone and watch it appear in admin on a

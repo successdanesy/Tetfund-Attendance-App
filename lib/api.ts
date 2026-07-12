@@ -70,6 +70,20 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }).then((d) => d.admin),
 
+  getDemoAccounts: () =>
+    request<{ staff: Staff[] }>("/api/demo-accounts").then((d) => d.staff),
+
+  demoLogin: (staffId: string) =>
+    request<{ staff: Staff }>("/api/auth/demo-login", {
+      method: "POST",
+      body: JSON.stringify({ staffId }),
+    }).then((d) => d.staff),
+
+  adminDemoLogin: () =>
+    request<{ admin: AdminUser }>("/api/auth/admin-demo-login", {
+      method: "POST",
+    }).then((d) => d.admin),
+
   getPending: () =>
     request<{ staff: Staff[] }>("/api/staff/pending").then((d) => d.staff),
 

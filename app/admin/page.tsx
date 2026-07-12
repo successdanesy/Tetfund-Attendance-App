@@ -17,6 +17,20 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tapping, setTapping] = useState(false);
+
+  async function tapEnter() {
+    setTapping(true);
+    setError("");
+    try {
+      const admin = await api.adminDemoLogin();
+      setAdmin(admin);
+      router.push("/admin/approvals");
+    } catch {
+      setError("We couldn't sign you in. Please try again.");
+      setTapping(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,6 +52,26 @@ export default function AdminLoginPage() {
 
   return (
     <Screen title="Administrator sign in" onBack="history">
+      <section className="mb-8">
+        <h2 className="mb-1 text-[22px] font-bold text-ink">Demo</h2>
+        <p className="mb-4 text-[16px] text-ink-soft">
+          Tap to enter as the administrator - no password needed.
+        </p>
+        <Button
+          onClick={tapEnter}
+          loading={tapping}
+          loadingLabel="Entering…"
+        >
+          Enter as administrator
+        </Button>
+
+        <div className="mt-8 flex items-center gap-3 text-[16px] text-ink-soft">
+          <span className="h-px flex-1 bg-line" />
+          or sign in manually
+          <span className="h-px flex-1 bg-line" />
+        </div>
+      </section>
+
       <form onSubmit={submit} className="flex flex-col gap-5">
         <TextField
           label="Admin email"
@@ -63,7 +97,7 @@ export default function AdminLoginPage() {
           Sign in
         </Button>
         <Note>
-          Demo login - email <b>{SEED_ADMIN.email}</b>, password{" "}
+          Manual login - email <b>{SEED_ADMIN.email}</b>, password{" "}
           <b>{ADMIN_PASSWORD}</b>.
         </Note>
       </form>
