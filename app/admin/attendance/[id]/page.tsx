@@ -1,14 +1,16 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminShell } from "@/components/AdminShell";
 import { Note } from "@/components/Note";
+import { Spinner } from "@/components/Spinner";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useStore } from "@/lib/store";
 import { useRequireAdmin } from "@/lib/guards";
+import { api } from "@/lib/api";
 import { formatDate, formatTime } from "@/lib/format";
 import { formatDistance } from "@/lib/geo";
+import type { AttendanceRecord, Staff } from "@/lib/types";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -26,12 +28,41 @@ export default function AttendanceDetailPage({
 }) {
   const { id } = use(params);
   const admin = useRequireAdmin();
-  const { attendance, staffById, departmentName } = useStore();
+
+  const [loading, setLoading] = useState(true);
+  const [record, setRecord] = useState<AttendanceRecord | null>(null);
+  const [staff, setStaff] = useState<Staff | null>(null);
+  const [department, setDepartment] = useState("—");
+
+  useEffect(() => {
+    if (!admin) return;
+    let active = true;
+    (async () => {
+      try {
+        const [detail, departments] = await Promise.all([
+          api.getAttendanceDetail(id),
+          api.getDepartments(),
+        ]);
+        if (!active) return;
+        setRecord(detail.record);
+        setStaff(detail.staff);
+        setDepartment(
+          departments.find((d) => d.id === detail.staff?.departmentId)?.name ??
+            "—",
+        );
+      } catch {
+        // Leave record null -> not-found message below.
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, admin?.id]);
 
   if (!admin) return null;
-
-  const record = attendance.find((r) => r.id === id);
-  const staff = record ? staffById(record.staffId) : undefined;
 
   return (
     <AdminShell title="Attendance detail">
@@ -42,7 +73,14 @@ export default function AttendanceDetailPage({
         ← Back to today&apos;s attendance
       </Link>
 
-      {!record || !staff ? (
+      {loading ? (
+        <div className="flex items-center gap-3 text-ink-soft">
+          <span className="text-brand">
+            <Spinner />
+          </span>
+          Loading…
+        </div>
+      ) : !record || !staff ? (
         <Note tone="error">This record could not be found.</Note>
       ) : (
         <>
@@ -78,12 +116,14 @@ export default function AttendanceDetailPage({
 
           <div className="mt-4">
             <StatusBadge tone={record.withinGeofence ? "success" : "error"}>
-              {record.withinGeofence ? "Within office geofence" : "Outside geofence"}
+              {record.withinGeofence
+                ? "Within office geofence"
+                : "Outside geofence"}
             </StatusBadge>
           </div>
 
           <div className="mt-4">
-            <DetailRow label="Department" value={departmentName(staff.departmentId)} />
+            <DetailRow label="Department" value={department} />
             <DetailRow label="Email" value={staff.email} />
             <DetailRow label="Date" value={formatDate(record.timestamp)} />
             <DetailRow label="Time" value={formatTime(record.timestamp)} />

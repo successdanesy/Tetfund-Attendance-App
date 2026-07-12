@@ -1,24 +1,54 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminShell } from "@/components/AdminShell";
 import { Button } from "@/components/Button";
 import { Note } from "@/components/Note";
+import { Spinner } from "@/components/Spinner";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useStore } from "@/lib/store";
 import { useRequireAdmin } from "@/lib/guards";
+import { api } from "@/lib/api";
 import { formatTime } from "@/lib/format";
 import { buildAttendanceCsv, downloadCsv } from "@/lib/csv";
+import type { AttendanceRecord, Department, Staff } from "@/lib/types";
 
 export default function AttendancePage() {
   const admin = useRequireAdmin();
-  const { todaysAttendance, staffById, departmentName } = useStore();
+  const [records, setRecords] = useState<AttendanceRecord[] | null>(null);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!admin) return;
+    let active = true;
+    api
+      .getAdminToday()
+      .then((d) => {
+        if (!active) return;
+        setRecords(d.records);
+        setStaff(d.staff);
+        setDepartments(d.departments);
+      })
+      .catch(
+        () =>
+          active && setError("We couldn't load today's attendance. Please try again."),
+      );
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admin?.id]);
 
   if (!admin) return null;
 
-  const records = todaysAttendance();
+  const staffById = (id: string) => staff.find((s) => s.id === id);
+  const departmentName = (id: string) =>
+    departments.find((d) => d.id === id)?.name ?? "—";
 
   function exportCsv() {
+    if (!records) return;
     const csv = buildAttendanceCsv(records, staffById, departmentName);
     const stamp = new Date().toISOString().slice(0, 10);
     downloadCsv(`tetfund-attendance-${stamp}.csv`, csv);
@@ -26,7 +56,16 @@ export default function AttendancePage() {
 
   return (
     <AdminShell title="Today's attendance">
-      {records.length === 0 ? (
+      {error ? (
+        <Note tone="error">{error}</Note>
+      ) : !records ? (
+        <div className="flex items-center gap-3 text-ink-soft">
+          <span className="text-brand">
+            <Spinner />
+          </span>
+          Loading today&apos;s attendance…
+        </div>
+      ) : records.length === 0 ? (
         <Note>
           No one has clocked in yet today. Records will appear here as staff
           clock in.
@@ -53,10 +92,7 @@ export default function AttendancePage() {
                 {records.map((r) => {
                   const s = staffById(r.staffId);
                   return (
-                    <tr
-                      key={r.id}
-                      className="border-b border-line align-middle"
-                    >
+                    <tr key={r.id} className="border-b border-line align-middle">
                       <td className="py-3 pr-4">
                         <Link
                           href={`/admin/attendance/${r.id}`}
@@ -74,7 +110,7 @@ export default function AttendancePage() {
                         </Link>
                       </td>
                       <td className="py-3 pr-4 text-ink">
-                        {s ? departmentName(s.departmentId) : "-"}
+                        {s ? departmentName(s.departmentId) : "—"}
                       </td>
                       <td className="py-3 pr-4 text-ink">
                         {formatTime(r.timestamp)}

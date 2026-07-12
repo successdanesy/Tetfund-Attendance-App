@@ -1,35 +1,39 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/Field";
 import { Button } from "@/components/Button";
 import { Note } from "@/components/Note";
-import { useStore } from "@/lib/store";
+import { useSession } from "@/lib/session";
+import { api, ApiError } from "@/lib/api";
 import { SEED_ADMIN, ADMIN_PASSWORD } from "@/lib/seed";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { loginAdmin } = useStore();
+  const { setAdmin } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const ok =
-      email.trim().toLowerCase() === SEED_ADMIN.email.toLowerCase() &&
-      password === ADMIN_PASSWORD;
-    if (!ok) {
-      setError("That email or password isn't correct.");
-      return;
-    }
-    loginAdmin();
-    startTransition(() => {
+    setBusy(true);
+    setError("");
+    try {
+      const admin = await api.adminLogin(email, password);
+      setAdmin(admin);
       router.push("/admin/approvals");
-    });
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
+      setBusy(false);
+    }
   }
 
   return (
@@ -55,7 +59,7 @@ export default function AdminLoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={error}
         />
-        <Button type="submit" loading={isPending} loadingLabel="Signing in…">
+        <Button type="submit" loading={busy} loadingLabel="Signing in…">
           Sign in
         </Button>
         <Note>

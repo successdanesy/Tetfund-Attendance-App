@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { Button } from "@/components/Button";
 import { Note } from "@/components/Note";
+import { Spinner } from "@/components/Spinner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { useStore } from "@/lib/store";
 import { useRequireAdmin } from "@/lib/guards";
+import { api } from "@/lib/api";
 import { formatDateShort } from "@/lib/format";
+import type { Department, Staff } from "@/lib/types";
 
 type PendingAction = {
   staffId: string;
@@ -17,36 +19,93 @@ type PendingAction = {
 
 export default function ApprovalsPage() {
   const admin = useRequireAdmin();
-  const { pendingStaff, departmentName, approveStaff, rejectStaff } = useStore();
+
+  const [list, setList] = useState<Staff[] | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadError, setLoadError] = useState("");
 
   const [pending, setPending] = useState<PendingAction | null>(null);
-  const [result, setResult] = useState<string>("");
+  const [acting, setActing] = useState(false);
+  const [result, setResult] = useState("");
+
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  async function load() {
+    setLoadError("");
+    try {
+      const [staff, depts] = await Promise.all([
+        api.getPending(),
+        api.getDepartments(),
+      ]);
+      setList(staff);
+      setDepartments(depts);
+    } catch {
+      setLoadError("We couldn't load pending accounts. Please try again.");
+    }
+  }
+
+  useEffect(() => {
+    if (admin) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admin?.id]);
 
   if (!admin) return null;
 
-  const list = pendingStaff();
+  const departmentName = (id: string) =>
+    departments.find((d) => d.id === id)?.name ?? "—";
 
-  function confirmAction() {
+  async function confirmAction() {
     if (!pending) return;
-    if (pending.action === "approve") {
-      approveStaff(pending.staffId);
-      setResult(`Approved ${pending.name}. They can now clock in.`);
-    } else {
-      rejectStaff(pending.staffId);
-      setResult(`Rejected ${pending.name}'s account.`);
+    setActing(true);
+    try {
+      await api.setStaffStatus(pending.staffId, pending.action);
+      setList((prev) => prev?.filter((s) => s.id !== pending.staffId) ?? null);
+      setResult(
+        pending.action === "approve"
+          ? `Approved ${pending.name}. They can now clock in.`
+          : `Rejected ${pending.name}'s account.`,
+      );
+    } catch {
+      setResult("That didn't work. Please try again.");
+    } finally {
+      setActing(false);
+      setPending(null);
     }
-    setPending(null);
+  }
+
+  async function doReset() {
+    setResetting(true);
+    try {
+      await api.resetDemo();
+      setResult("Demo data cleared. Ready for a fresh run.");
+      await load();
+    } catch {
+      setResult("Reset failed. Please try again.");
+    } finally {
+      setResetting(false);
+      setConfirmReset(false);
+    }
   }
 
   return (
-    <AdminShell title="Pending approvals">
+    <AdminShell title="Pending approvals" pendingCount={list?.length ?? 0}>
       {result && (
         <div className="mb-5">
           <Note tone="success">{result}</Note>
         </div>
       )}
 
-      {list.length === 0 ? (
+      {loadError ? (
+        <Note tone="error">{loadError}</Note>
+      ) : !list ? (
+        <div className="flex items-center gap-3 text-ink-soft">
+          <span className="text-brand">
+            <Spinner />
+          </span>
+          Loading pending accounts…
+        </div>
+      ) : list.length === 0 ? (
         <Note>
           No accounts are waiting for approval right now. New sign-ups will
           appear here.
@@ -69,9 +128,7 @@ export default function ApprovalsPage() {
                   <p className="text-[20px] font-bold text-ink">
                     {s.firstName} {s.lastName}
                   </p>
-                  <p className="text-ink-soft">
-                    {departmentName(s.departmentId)}
-                  </p>
+                  <p className="text-ink-soft">{departmentName(s.departmentId)}</p>
                   <p className="truncate text-[16px] text-ink-soft">{s.email}</p>
                   <p className="text-[16px] text-ink-soft">
                     Signed up {formatDateShort(s.createdAt)}
@@ -108,10 +165,23 @@ export default function ApprovalsPage() {
         </ul>
       )}
 
+      {/* Reset control for starting a pitch from a clean slate. */}
+      <div className="mt-10 border-t border-line pt-6">
+        <p className="mb-3 text-[16px] text-ink-soft">
+          Clears every staff account and attendance record, then re-seeds the
+          departments and this admin. Use it to start a demo fresh.
+        </p>
+        <Button variant="danger" onClick={() => setConfirmReset(true)}>
+          Reset demo data
+        </Button>
+      </div>
+
       <ConfirmDialog
         open={pending !== null}
         title={
-          pending?.action === "approve" ? "Approve this account?" : "Reject this account?"
+          pending?.action === "approve"
+            ? "Approve this account?"
+            : "Reject this account?"
         }
         message={
           pending?.action === "approve"
@@ -120,8 +190,20 @@ export default function ApprovalsPage() {
         }
         confirmLabel={pending?.action === "approve" ? "Approve" : "Reject"}
         confirmVariant={pending?.action === "approve" ? "primary" : "danger"}
+        confirmLoading={acting}
         onConfirm={confirmAction}
         onCancel={() => setPending(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmReset}
+        title="Reset all demo data?"
+        message="This permanently deletes every staff account and attendance record. This can't be undone."
+        confirmLabel="Reset everything"
+        confirmVariant="danger"
+        confirmLoading={resetting}
+        onConfirm={doReset}
+        onCancel={() => setConfirmReset(false)}
       />
     </AdminShell>
   );

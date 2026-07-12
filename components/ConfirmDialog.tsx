@@ -11,6 +11,7 @@ export function ConfirmDialog({
   message,
   confirmLabel,
   confirmVariant = "primary",
+  confirmLoading = false,
   onConfirm,
   onCancel,
 }: {
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   message: string;
   confirmLabel: string;
   confirmVariant?: "primary" | "danger";
+  confirmLoading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -50,10 +52,14 @@ export function ConfirmDialog({
         </h2>
         <p className="mt-2 text-ink-soft">{message}</p>
         <div className="mt-6 flex flex-col gap-3">
-          <Button variant={confirmVariant} onClick={onConfirm}>
+          <Button
+            variant={confirmVariant}
+            onClick={onConfirm}
+            loading={confirmLoading}
+          >
             {confirmLabel}
           </Button>
-          <Button variant="secondary" onClick={onCancel}>
+          <Button variant="secondary" onClick={onCancel} disabled={confirmLoading}>
             Cancel
           </Button>
         </div>

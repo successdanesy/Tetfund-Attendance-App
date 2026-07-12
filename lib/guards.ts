@@ -2,24 +2,25 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useStore } from "./store";
+import { useSession } from "./session";
 
-// Redirect to the welcome screen if no staff is signed in this session.
+// Redirect to the welcome screen if no staff is signed in - but only after the
+// session has rehydrated from localStorage, so a refresh doesn't bounce a
+// signed-in user out.
 export function useRequireStaff() {
   const router = useRouter();
-  const { currentStaff } = useStore();
+  const { ready, currentStaff } = useSession();
   useEffect(() => {
-    if (!currentStaff) router.replace("/");
-  }, [currentStaff, router]);
+    if (ready && !currentStaff) router.replace("/");
+  }, [ready, currentStaff, router]);
   return currentStaff;
 }
 
-// Redirect to the admin login if no admin is signed in this session.
 export function useRequireAdmin() {
   const router = useRouter();
-  const { currentAdmin } = useStore();
+  const { ready, currentAdmin } = useSession();
   useEffect(() => {
-    if (!currentAdmin) router.replace("/admin");
-  }, [currentAdmin, router]);
+    if (ready && !currentAdmin) router.replace("/admin");
+  }, [ready, currentAdmin, router]);
   return currentAdmin;
 }

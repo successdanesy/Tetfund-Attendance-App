@@ -5,4 +5,7 @@
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
-.env*
+
+# Local secrets (keep .env.example tracked so others know what to set)
+.env
+.env*.local

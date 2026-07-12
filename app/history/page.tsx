@@ -1,20 +1,36 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Screen } from "@/components/Screen";
 import { BottomNav } from "@/components/BottomNav";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Note } from "@/components/Note";
-import { useStore } from "@/lib/store";
+import { Spinner } from "@/components/Spinner";
 import { useRequireStaff } from "@/lib/guards";
+import { api } from "@/lib/api";
 import { formatDate, formatTime } from "@/lib/format";
+import type { AttendanceRecord } from "@/lib/types";
 
 export default function HistoryPage() {
   const staff = useRequireStaff();
-  const { recordsForStaff } = useStore();
+  const [records, setRecords] = useState<AttendanceRecord[] | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!staff) return;
+    let active = true;
+    api
+      .getMyRecords(staff.id)
+      .then((r) => active && setRecords(r))
+      .catch(
+        () => active && setError("We couldn't load your history. Please try again."),
+      );
+    return () => {
+      active = false;
+    };
+  }, [staff?.id]);
 
   if (!staff) return null;
-
-  const records = recordsForStaff(staff.id);
 
   return (
     <>
@@ -23,7 +39,16 @@ export default function HistoryPage() {
           Your attendance
         </h2>
 
-        {records.length === 0 ? (
+        {error ? (
+          <Note tone="error">{error}</Note>
+        ) : !records ? (
+          <div className="flex items-center gap-3 text-ink-soft">
+            <span className="text-brand">
+              <Spinner />
+            </span>
+            Loading your history…
+          </div>
+        ) : records.length === 0 ? (
           <Note>
             You haven&apos;t clocked in yet. Once you do, each day will appear
             here.

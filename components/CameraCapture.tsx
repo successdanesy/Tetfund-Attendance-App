@@ -2,24 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
+import { videoToDataUrl, fileToDataUrl } from "@/lib/image";
 
 type Phase = "starting" | "live" | "captured" | "error";
 
 // Reusable live-photo capture: live preview, one big shutter, preview-before-
 // confirm. Falls back to file upload if no camera is available so the demo
-// never dead-ends. Hands the resulting object URL to the caller on confirm.
+// never dead-ends. Hands the caller a downscaled base64 JPEG data URL, which
+// persists (unlike an object URL) once stored in the database.
 export function CameraCapture({
   onConfirm,
   confirmLabel = "Use this photo",
   facingMode = "user",
 }: {
-  onConfirm: (photoUrl: string) => void;
+  onConfirm: (photoDataUrl: string) => void;
   confirmLabel?: string;
   facingMode?: "user" | "environment";
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const capturedRef = useRef<string | null>(null);
 
   const [phase, setPhase] = useState<Phase>("starting");
   const [captured, setCaptured] = useState<string | null>(null);
@@ -54,54 +55,44 @@ export function CameraCapture({
 
   useEffect(() => {
     startCamera();
-    return () => {
-      stopStream();
-      if (capturedRef.current) URL.revokeObjectURL(capturedRef.current);
-    };
+    return () => stopStream();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const takePhoto = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 720;
-    canvas.height = video.videoHeight || 720;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      capturedRef.current = url;
-      setCaptured(url);
-      setPhase("captured");
-      stopStream();
-    }, "image/jpeg", 0.9);
+    const url = videoToDataUrl(video);
+    if (!url) return;
+    setCaptured(url);
+    setPhase("captured");
+    stopStream();
   }, [stopStream]);
 
   const retake = useCallback(() => {
-    if (capturedRef.current) URL.revokeObjectURL(capturedRef.current);
-    capturedRef.current = null;
     setCaptured(null);
     startCamera();
   }, [startCamera]);
 
-  const onFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    stopStream();
-    const url = URL.createObjectURL(file);
-    capturedRef.current = url;
-    setCaptured(url);
-    setPhase("captured");
-  }, [stopStream]);
+  const onFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      stopStream();
+      try {
+        const url = await fileToDataUrl(file);
+        setCaptured(url);
+        setPhase("captured");
+      } catch {
+        setPhase("error");
+        setErrorMsg("We couldn't read that image. Please try another photo.");
+      }
+    },
+    [stopStream],
+  );
 
   const confirm = useCallback(() => {
-    if (!captured) return;
-    // Ownership passes to the caller - don't revoke here.
-    capturedRef.current = null;
-    onConfirm(captured);
+    if (captured) onConfirm(captured);
   }, [captured, onConfirm]);
 
   const frame =

@@ -2,32 +2,51 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { useStore } from "@/lib/store";
+import { useSession } from "@/lib/session";
+import { api } from "@/lib/api";
 
 // Shared admin frame: green header with sign-out, a two-item tab row, and a
 // centred content column. Same visual language as the staff side.
 export function AdminShell({
   title,
+  pendingCount,
   children,
 }: {
   title: string;
+  // Pages that own the pending list (Approvals) pass a live count; otherwise
+  // the shell fetches its own so the badge is still accurate.
+  pendingCount?: number;
   children: ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { pendingStaff, logoutAdmin } = useStore();
+  const { signOutAdmin } = useSession();
   const [confirmOut, setConfirmOut] = useState(false);
-  const pendingCount = pendingStaff().length;
+  const [fetchedCount, setFetchedCount] = useState(0);
+
+  useEffect(() => {
+    if (pendingCount !== undefined) return;
+    let active = true;
+    api
+      .getPending()
+      .then((s) => active && setFetchedCount(s.length))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [pendingCount, pathname]);
+
+  const count = pendingCount ?? fetchedCount;
 
   const tabs = [
-    { href: "/admin/approvals", label: "Approvals", count: pendingCount },
+    { href: "/admin/approvals", label: "Approvals", count },
     { href: "/admin/attendance", label: "Today", count: 0 },
   ];
 
   function signOut() {
-    logoutAdmin();
+    signOutAdmin();
     router.replace("/admin");
   }
 

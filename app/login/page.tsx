@@ -1,34 +1,38 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/Field";
 import { Button } from "@/components/Button";
-import { useStore } from "@/lib/store";
+import { useSession } from "@/lib/session";
+import { api, ApiError } from "@/lib/api";
 
-// Staff sign-in - mock: we match on email only. One action on the screen.
+// Staff sign-in - validates the password against the database.
 export default function LoginPage() {
   const router = useRouter();
-  const { loginStaff } = useStore();
+  const { setStaff } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  // isPending stays true from the tap until the Home screen has loaded.
-  const [isPending, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const staff = loginStaff(email);
-    if (!staff) {
-      setError(
-        "We couldn't find an account with that email. Please check it, or create a new account.",
-      );
-      return;
-    }
-    startTransition(() => {
+    setBusy(true);
+    setError("");
+    try {
+      const staff = await api.login(email, password);
+      setStaff(staff);
       router.push("/home");
-    });
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
+      setBusy(false);
+    }
   }
 
   return (
@@ -56,7 +60,7 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={error}
         />
-        <Button type="submit" loading={isPending} loadingLabel="Signing in…">
+        <Button type="submit" loading={busy} loadingLabel="Signing in…">
           Sign in
         </Button>
       </form>

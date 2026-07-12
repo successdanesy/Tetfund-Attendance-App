@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Screen } from "@/components/Screen";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { useStore } from "@/lib/store";
+import { useSession } from "@/lib/session";
 import { useRequireStaff } from "@/lib/guards";
+import { api } from "@/lib/api";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -22,13 +23,31 @@ function Row({ label, value }: { label: string; value: string }) {
 export default function ProfilePage() {
   const router = useRouter();
   const staff = useRequireStaff();
-  const { departmentName, logoutStaff } = useStore();
+  const { signOutStaff } = useSession();
+  const [department, setDepartment] = useState("…");
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+
+  useEffect(() => {
+    if (!staff) return;
+    let active = true;
+    api
+      .getDepartments()
+      .then((list) => {
+        if (!active) return;
+        setDepartment(
+          list.find((d) => d.id === staff.departmentId)?.name ?? "—",
+        );
+      })
+      .catch(() => active && setDepartment("—"));
+    return () => {
+      active = false;
+    };
+  }, [staff?.id, staff?.departmentId]);
 
   if (!staff) return null;
 
   function signOut() {
-    logoutStaff();
+    signOutStaff();
     router.replace("/");
   }
 
@@ -66,7 +85,7 @@ export default function ProfilePage() {
         <div className="mt-6">
           <Row label="First name" value={staff.firstName} />
           <Row label="Last name" value={staff.lastName} />
-          <Row label="Department" value={departmentName(staff.departmentId)} />
+          <Row label="Department" value={department} />
           <Row label="Work email" value={staff.email} />
         </div>
 

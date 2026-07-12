@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Public_Sans } from "next/font/google";
 import "./globals.css";
-import { StoreProvider } from "@/lib/store";
+import { SessionProvider } from "@/lib/session";
 
 // One typeface throughout - Public Sans, the USWDS face, chosen for
 // legibility in official digital services.
@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={publicSans.variable}>
       <body>
-        <StoreProvider>{children}</StoreProvider>
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

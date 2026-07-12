@@ -1,23 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Screen } from "@/components/Screen";
 import { TextField, SelectField } from "@/components/Field";
 import { Button } from "@/components/Button";
 import { LinkButton } from "@/components/LinkButton";
 import { Note } from "@/components/Note";
+import { Spinner } from "@/components/Spinner";
 import { CameraCapture } from "@/components/CameraCapture";
 import { Stamp } from "@/components/Stamp";
-import { useStore } from "@/lib/store";
 import { isValidWorkEmail, WORK_EMAIL_ERROR } from "@/lib/email";
+import { api, ApiError } from "@/lib/api";
+import type { Department } from "@/lib/types";
 
 type Step = 1 | 2 | 3 | 4 | 5 | "done";
 
 // Sign-up as a wizard: one field group per screen, one big Next button.
 export default function SignupPage() {
   const router = useRouter();
-  const { departments, signUpStaff } = useStore();
+
+  const [departments, setDepartments] = useState<Department[] | null>(null);
+  const [deptError, setDeptError] = useState("");
 
   const [step, setStep] = useState<Step>(1);
   const [email, setEmail] = useState("");
@@ -26,6 +30,26 @@ export default function SignupPage() {
   const [departmentId, setDepartmentId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  // Load departments once, ready for step 3.
+  useEffect(() => {
+    let active = true;
+    api
+      .getDepartments()
+      .then((d) => active && setDepartments(d))
+      .catch(
+        () =>
+          active &&
+          setDeptError("We couldn't load departments. Please try again."),
+      );
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function back() {
     setError("");
@@ -41,7 +65,6 @@ export default function SignupPage() {
     setStep(to);
   }
 
-  // -- Step 1: work email --------------------------------------------------
   function submitEmail(e: React.FormEvent) {
     e.preventDefault();
     if (!email.includes("@")) {
@@ -55,7 +78,6 @@ export default function SignupPage() {
     next(2);
   }
 
-  // -- Step 2: name --------------------------------------------------------
   function submitName(e: React.FormEvent) {
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim()) {
@@ -65,7 +87,6 @@ export default function SignupPage() {
     next(3);
   }
 
-  // -- Step 3: department --------------------------------------------------
   function submitDepartment(e: React.FormEvent) {
     e.preventDefault();
     if (!departmentId) {
@@ -75,7 +96,6 @@ export default function SignupPage() {
     next(4);
   }
 
-  // -- Step 4: password ----------------------------------------------------
   function submitPassword(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 6) {
@@ -85,17 +105,29 @@ export default function SignupPage() {
     next(5);
   }
 
-  // -- Step 5: reference photo → create account ---------------------------
-  function completeSignup(referencePhotoUrl: string) {
-    signUpStaff({
-      email,
-      firstName,
-      lastName,
-      departmentId,
-      password,
-      referencePhotoUrl,
-    });
-    setStep("done");
+  // Step 5: reference photo -> create the account in the database.
+  async function createAccount(referencePhotoUrl: string) {
+    setPhoto(referencePhotoUrl);
+    setCreating(true);
+    setSubmitError("");
+    try {
+      await api.signup({
+        email,
+        firstName,
+        lastName,
+        departmentId,
+        password,
+        referencePhotoUrl,
+      });
+      setStep("done");
+    } catch (err) {
+      setSubmitError(
+        err instanceof ApiError
+          ? err.message
+          : "We couldn't create your account. Please try again.",
+      );
+      setCreating(false);
+    }
   }
 
   if (step === "done") {
@@ -190,33 +222,46 @@ export default function SignupPage() {
         </form>
       )}
 
-      {step === 3 &&
-        (departments.length > 0 ? (
-          <form onSubmit={submitDepartment} className="flex flex-col gap-5">
-            <SelectField
-              label="Department"
-              name="department"
-              value={departmentId}
-              onChange={(e) => {
-                setDepartmentId(e.target.value);
-                setError("");
-              }}
-            >
-              <option value="">Select your department</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </SelectField>
-            {error && <Note tone="error">{error}</Note>}
-            <Button type="submit">Next</Button>
-          </form>
-        ) : (
-          <Note tone="error">
-            No departments are set up yet. Please contact your administrator.
-          </Note>
-        ))}
+      {step === 3 && (
+        <>
+          {deptError && <Note tone="error">{deptError}</Note>}
+          {!departments && !deptError && (
+            <div className="flex items-center gap-3 text-ink-soft">
+              <span className="text-brand">
+                <Spinner />
+              </span>
+              Loading departments…
+            </div>
+          )}
+          {departments && departments.length > 0 && (
+            <form onSubmit={submitDepartment} className="flex flex-col gap-5">
+              <SelectField
+                label="Department"
+                name="department"
+                value={departmentId}
+                onChange={(e) => {
+                  setDepartmentId(e.target.value);
+                  setError("");
+                }}
+              >
+                <option value="">Select your department</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </SelectField>
+              {error && <Note tone="error">{error}</Note>}
+              <Button type="submit">Next</Button>
+            </form>
+          )}
+          {departments && departments.length === 0 && (
+            <Note tone="error">
+              No departments are set up yet. Please contact your administrator.
+            </Note>
+          )}
+        </>
+      )}
 
       {step === 4 && (
         <form onSubmit={submitPassword} className="flex flex-col gap-5">
@@ -240,16 +285,45 @@ export default function SignupPage() {
 
       {step === 5 && (
         <div className="flex flex-col gap-5">
-          <p className="text-ink-soft">
-            This photo is your reference picture. Your administrator uses it to
-            check it&apos;s really you when you clock in. Look at the camera and
-            take a clear photo of your face.
-          </p>
-          <CameraCapture
-            onConfirm={completeSignup}
-            confirmLabel="Use this photo & create account"
-            facingMode="user"
-          />
+          {creating ? (
+            <div className="flex flex-col items-center gap-4 py-10 text-center">
+              <span className="text-brand">
+                <Spinner size={40} />
+              </span>
+              <p className="text-[18px] text-ink-soft">
+                Creating your account…
+              </p>
+            </div>
+          ) : submitError ? (
+            <>
+              <Note tone="error">{submitError}</Note>
+              <Button onClick={() => photo && createAccount(photo)}>
+                Try again
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setPhoto(null);
+                  setSubmitError("");
+                }}
+              >
+                Take a different photo
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-ink-soft">
+                This photo is your reference picture. Your administrator uses it
+                to check it&apos;s really you when you clock in. Look at the
+                camera and take a clear photo of your face.
+              </p>
+              <CameraCapture
+                onConfirm={createAccount}
+                confirmLabel="Use this photo & create account"
+                facingMode="user"
+              />
+            </>
+          )}
         </div>
       )}
     </Screen>

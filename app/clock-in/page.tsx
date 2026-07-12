@@ -8,7 +8,8 @@ import { Note } from "@/components/Note";
 import { Stamp } from "@/components/Stamp";
 import { CameraCapture } from "@/components/CameraCapture";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { useStore, canClockIn } from "@/lib/store";
+import { canClockIn } from "@/lib/access";
+import { api, ApiError } from "@/lib/api";
 import { useRequireStaff } from "@/lib/guards";
 import {
   checkGeofence,
@@ -46,13 +47,14 @@ function MapPin() {
 export default function ClockInPage() {
   const router = useRouter();
   const staff = useRequireStaff();
-  const { submitAttendance } = useStore();
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [reading, setReading] = useState<Reading | null>(null);
   const [distance, setDistance] = useState(0);
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [successTime, setSuccessTime] = useState("");
 
   if (!staff) return null;
@@ -111,25 +113,40 @@ export default function ClockInPage() {
     setShowConfirm(true);
   }
 
-  function doSubmit() {
+  async function doSubmit() {
     if (!reading || !pendingPhoto) return;
-    const { withinGeofence, distance } = checkGeofence(reading.lat, reading.lon);
-    const record = submitAttendance({
-      staffId: staff!.id,
-      photoUrl: pendingPhoto,
-      latitude: reading.lat,
-      longitude: reading.lon,
-      distanceFromOfficeMeters: distance,
-      withinGeofence,
-      address: `${reading.lat.toFixed(5)}, ${reading.lon.toFixed(5)}`,
-    });
-    setShowConfirm(false);
-    if (record) {
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const record = await api.submitAttendance({
+        staffId: staff!.id,
+        photoUrl: pendingPhoto,
+        latitude: reading.lat,
+        longitude: reading.lon,
+        address: `${reading.lat.toFixed(5)}, ${reading.lon.toFixed(5)}`,
+      });
+      setShowConfirm(false);
+      setSubmitting(false);
       setSuccessTime(record.timestamp);
       setPhase("success");
-    } else {
-      // Gate rejected the call (e.g. not approved) - send them home.
-      router.replace("/home");
+    } catch (err) {
+      setShowConfirm(false);
+      setSubmitting(false);
+      if (err instanceof ApiError && err.status === 403) {
+        // Approval was revoked - the gate rejected it server-side.
+        router.replace("/home");
+        return;
+      }
+      if (err instanceof ApiError && err.status === 422) {
+        // Server says outside the geofence.
+        setPhase("blocked");
+        return;
+      }
+      setSubmitError(
+        err instanceof ApiError
+          ? err.message
+          : "We couldn't record your attendance. Please try again.",
+      );
     }
   }
 
@@ -244,10 +261,14 @@ export default function ClockInPage() {
 
       {phase === "camera" && (
         <div className="flex flex-col gap-5">
-          <Note tone="success">
-            You&apos;re at the office. Take a photo of yourself to finish
-            clocking in.
-          </Note>
+          {submitError ? (
+            <Note tone="error">{submitError}</Note>
+          ) : (
+            <Note tone="success">
+              You&apos;re at the office. Take a photo of yourself to finish
+              clocking in.
+            </Note>
+          )}
           <CameraCapture
             onConfirm={onPhotoConfirmed}
             confirmLabel="Submit attendance"
@@ -277,6 +298,7 @@ export default function ClockInPage() {
         title="Submit your attendance?"
         message="This marks you present for today and can't be undone. Are you ready to submit?"
         confirmLabel="Yes, submit"
+        confirmLoading={submitting}
         onConfirm={doSubmit}
         onCancel={() => setShowConfirm(false)}
       />
