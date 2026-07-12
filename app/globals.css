@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Design tokens — every screen consumes these, nothing hardcodes hex. */
+/* ------------------------------------------------------------------ */
+@theme {
+  --color-brand: #1b5e3f;
+  --color-brand-dark: #14472f;
+
+  --color-surface: #f7f8f5;
+  --color-line: #dcdcd4;
+
+  --color-ink: #1a1a18;
+  --color-ink-soft: #5c5c57;
+
+  --color-success-bg: #eaf3de;
+  --color-success-ink: #173404;
+
+  --color-error-bg: #fcebeb;
+  --color-error-ink: #501313;
+
+  --color-pending-bg: #faeeda;
+  --color-pending-ink: #412402;
+
+  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* Minimum touch target for the whole app. */
+  --spacing-touch: 56px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Base — larger type for an older audience, generous line height.     */
+/* ------------------------------------------------------------------ */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible focus everywhere — accessibility floor, no hover-only reliance. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Native form controls inherit the app typeface and size. */
+input,
+select,
+button,
+textarea {
+  font: inherit;
+}
+
+/* The one moment of delight: the "present" stamp drawing itself in. */
+@keyframes stamp-ring {
+  from {
+    stroke-dashoffset: var(--ring-length);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes stamp-check {
+  from {
+    stroke-dashoffset: var(--check-length);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes stamp-pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.stamp-pop {
+  animation: stamp-pop 400ms ease-out both;
+}
+.stamp-ring {
+  stroke-dasharray: var(--ring-length);
+  stroke-dashoffset: var(--ring-length);
+  animation: stamp-ring 400ms ease-out forwards;
+}
+.stamp-check {
+  stroke-dasharray: var(--check-length);
+  stroke-dashoffset: var(--check-length);
+  animation: stamp-check 300ms ease-out 320ms forwards;
+}
+
+/* Nowhere else gets animation, and honour reduced-motion for the stamp. */
+@media (prefers-reduced-motion: reduce) {
+  .stamp-pop,
+  .stamp-ring,
+  .stamp-check {
+    animation: none;
+  }
+  .stamp-ring,
+  .stamp-check {
+    stroke-dashoffset: 0;
+  }
+}
