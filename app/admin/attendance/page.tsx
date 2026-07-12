@@ -74,7 +74,7 @@ export default function AttendancePage() {
                         </Link>
                       </td>
                       <td className="py-3 pr-4 text-ink">
-                        {s ? departmentName(s.departmentId) : "—"}
+                        {s ? departmentName(s.departmentId) : "-"}
                       </td>
                       <td className="py-3 pr-4 text-ink">
                         {formatTime(r.timestamp)}

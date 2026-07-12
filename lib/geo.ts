@@ -8,7 +8,7 @@ export const OFFICE_LOCATION = {
 export const GEOFENCE_RADIUS_METERS = 150;
 
 // Above this accuracy radius (in metres) we don't trust the reading and warn
-// the user instead — the direct fix for "Abuja showing as Kaduna".
+// the user instead - the direct fix for "Abuja showing as Kaduna".
 export const ACCURACY_WARN_METERS = 50;
 
 export function haversineDistanceMeters(

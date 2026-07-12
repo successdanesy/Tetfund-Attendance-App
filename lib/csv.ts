@@ -1,7 +1,7 @@
 import type { AttendanceRecord, Staff } from "./types";
 
 function escape(value: string): string {
-  // Wrap in quotes and double any embedded quotes — safe for commas/newlines.
+  // Wrap in quotes and double any embedded quotes - safe for commas/newlines.
   return `"${value.replace(/"/g, '""')}"`;
 }
 
@@ -29,8 +29,8 @@ export function buildAttendanceCsv(
     const name = s ? `${s.firstName} ${s.lastName}` : "Unknown";
     return [
       name,
-      s ? departmentName(s.departmentId) : "—",
-      s?.email ?? "—",
+      s ? departmentName(s.departmentId) : "-",
+      s?.email ?? "-",
       d.toLocaleDateString("en-GB"),
       d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
       r.latitude.toFixed(6),

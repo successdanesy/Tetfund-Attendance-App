@@ -99,7 +99,7 @@ export function CameraCapture({
 
   const confirm = useCallback(() => {
     if (!captured) return;
-    // Ownership passes to the caller — don't revoke here.
+    // Ownership passes to the caller - don't revoke here.
     capturedRef.current = null;
     onConfirm(captured);
   }, [captured, onConfirm]);

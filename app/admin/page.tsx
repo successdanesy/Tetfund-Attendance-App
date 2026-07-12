@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
         />
         <Button type="submit">Sign in</Button>
         <Note>
-          Demo login — email <b>{SEED_ADMIN.email}</b>, password{" "}
+          Demo login - email <b>{SEED_ADMIN.email}</b>, password{" "}
           <b>{ADMIN_PASSWORD}</b>.
         </Note>
       </form>

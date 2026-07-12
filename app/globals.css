@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------ */
-/* Design tokens — every screen consumes these, nothing hardcodes hex. */
+/* Design tokens - every screen consumes these, nothing hardcodes hex. */
 /* ------------------------------------------------------------------ */
 @theme {
   --color-brand: #1b5e3f;
@@ -29,7 +29,7 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Base — larger type for an older audience, generous line height.     */
+/* Base - larger type for an older audience, generous line height.     */
 /* ------------------------------------------------------------------ */
 html {
   -webkit-text-size-adjust: 100%;
@@ -45,7 +45,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Visible focus everywhere — accessibility floor, no hover-only reliance. */
+/* Visible focus everywhere - accessibility floor, no hover-only reliance. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 3px solid var(--color-brand);
   outline-offset: 2px;

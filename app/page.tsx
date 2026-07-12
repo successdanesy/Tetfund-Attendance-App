@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 
-// Welcome — logo, one primary and one secondary action, nothing else.
+// Welcome - logo, one primary and one secondary action, nothing else.
 export default function WelcomePage() {
   return (
     <div className="flex min-h-dvh flex-col bg-white">
@@ -14,7 +14,7 @@ export default function WelcomePage() {
             TETFUND Staff Attendance
           </h1>
           <p className="mt-3 max-w-[380px] text-ink-soft">
-            Clock in each day with your photo and location — no paper register.
+            Clock in each day with your photo and location - no paper register.
           </p>
         </div>
 

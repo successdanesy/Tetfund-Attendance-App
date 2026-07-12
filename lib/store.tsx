@@ -17,7 +17,7 @@ import { SEED_ADMIN, SEED_DEPARTMENTS } from "./seed";
 
 // ---------------------------------------------------------------------------
 // In-memory demo store. No persistence beyond the session (a refresh resets
-// everything) — this is deliberate for the pitch.
+// everything) - this is deliberate for the pitch.
 // ---------------------------------------------------------------------------
 
 function newId(prefix: string): string {
@@ -37,7 +37,7 @@ export function isSameDay(a: string, b: string): boolean {
   );
 }
 
-// The admin approval gate — real even in the demo.
+// The admin approval gate - real even in the demo.
 export function canClockIn(staff: Staff): boolean {
   return staff.status === "approved";
 }
@@ -70,7 +70,7 @@ type StoreValue = {
   currentStaff: Staff | null;
   currentAdmin: AdminUser | null;
 
-  // Staff auth (mock — password is accepted but not stored/checked hard).
+  // Staff auth (mock - password is accepted but not stored/checked hard).
   signUpStaff: (input: SignUpInput) => Staff;
   loginStaff: (email: string) => Staff | null;
   logoutStaff: () => void;
@@ -181,7 +181,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
 
       departmentName: (id) =>
-        departments.find((d) => d.id === id)?.name ?? "—",
+        departments.find((d) => d.id === id)?.name ?? "-",
 
       staffById,
 

@@ -7,7 +7,7 @@ import { TextField } from "@/components/Field";
 import { Button } from "@/components/Button";
 import { useStore } from "@/lib/store";
 
-// Staff sign-in — mock: we match on email only. One action on the screen.
+// Staff sign-in - mock: we match on email only. One action on the screen.
 export default function LoginPage() {
   const router = useRouter();
   const { loginStaff } = useStore();

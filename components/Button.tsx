@@ -10,7 +10,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
 };
 
-// Buttons: 18–20px weight 700, minimum 56px tall, full-width on mobile.
+// Buttons: 18-20px weight 700, minimum 56px tall, full-width on mobile.
 const base =
   "inline-flex items-center justify-center gap-2 min-h-[var(--spacing-touch)] px-6 " +
   "rounded-xl text-[19px] font-bold leading-tight transition-colors " +

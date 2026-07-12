@@ -104,7 +104,7 @@ export default function SignupPage() {
         <div className="flex flex-col items-center text-center">
           <Stamp />
           <h2 className="mt-6 text-[28px] font-bold text-ink">
-            Account created — pending approval
+            Account created - pending approval
           </h2>
           <Note tone="pending">
             <p>

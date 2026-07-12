@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Button } from "./Button";
 
 // A single, plain-language confirmation shown before a final/destructive
-// action. One dialog at a time — never stacked.
+// action. One dialog at a time - never stacked.
 export function ConfirmDialog({
   open,
   title,

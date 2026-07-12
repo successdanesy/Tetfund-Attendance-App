@@ -1,4 +1,4 @@
-// One badge component, one status colour visible at a time — never combining
+// One badge component, one status colour visible at a time - never combining
 // success/error/pending on the same view.
 type Tone = "success" | "error" | "pending";
 

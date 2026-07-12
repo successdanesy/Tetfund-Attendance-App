@@ -1,4 +1,4 @@
-// Personal email providers are rejected — staff must use an official work
+// Personal email providers are rejected - staff must use an official work
 // address. Kept as a plain list so it's obvious what's blocked and why.
 export const BLOCKED_DOMAINS = [
   "gmail.com",
@@ -16,4 +16,4 @@ export function isValidWorkEmail(email: string): boolean {
 
 // A single plain-language message shared by every screen that validates email.
 export const WORK_EMAIL_ERROR =
-  "Please use your official work email address — personal email providers like Gmail and Yahoo aren't accepted.";
+  "Please use your official work email address - personal email providers like Gmail and Yahoo aren't accepted.";

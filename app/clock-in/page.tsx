@@ -88,7 +88,7 @@ export default function ClockInPage() {
     );
   }
 
-  // Demo control — pretend we're standing at the office so the happy path is
+  // Demo control - pretend we're standing at the office so the happy path is
   // showable during the pitch. The real geofence logic is untouched.
   function simulateOffice() {
     setPhase("locating");
@@ -128,7 +128,7 @@ export default function ClockInPage() {
       setSuccessTime(record.timestamp);
       setPhase("success");
     } else {
-      // Gate rejected the call (e.g. not approved) — send them home.
+      // Gate rejected the call (e.g. not approved) - send them home.
       router.replace("/home");
     }
   }
@@ -159,7 +159,7 @@ export default function ClockInPage() {
             </h2>
             <p className="mt-3 text-ink-soft">
               To clock in, the app confirms you&apos;re at the TETFUND office.
-              Your phone will ask permission to use your location — please tap
+              Your phone will ask permission to use your location - please tap
               Allow. We only use it for this check.
             </p>
           </div>
@@ -208,7 +208,7 @@ export default function ClockInPage() {
           <Note tone="error">
             <p className="font-bold">You&apos;re not at the office.</p>
             <p className="mt-2">
-              You need to be at the office to clock in — you appear to be about{" "}
+              You need to be at the office to clock in - you appear to be about{" "}
               {formatDistance(distance)} away. Move closer and try again.
             </p>
           </Note>
