@@ -7,6 +7,7 @@ import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/Field";
 import { Button } from "@/components/Button";
 import { Note } from "@/components/Note";
+import { Logo } from "@/components/Logo";
 import { useSession } from "@/lib/session";
 import { api, ApiError } from "@/lib/api";
 
@@ -40,30 +41,16 @@ export default function LoginPage() {
   return (
     <Screen title="Sign in" onBack="history">
       <form onSubmit={submit} className="flex flex-col gap-5">
-        {/* Shield-check in a soft green glow - the secure sign-in moment. */}
+        {/* TETFUND emblem in a soft green glow - grounds the sign-in screen. */}
         <div className="flex justify-center">
           <div
-            className="flex h-[72px] w-[72px] items-center justify-center rounded-full"
+            className="flex h-[88px] w-[88px] items-center justify-center rounded-full"
             style={{
               background:
                 "radial-gradient(circle, rgba(20,107,69,0.1), rgba(20,107,69,0) 70%)",
             }}
           >
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"
-                stroke="var(--color-brand)"
-                strokeWidth="2"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M9 12l2 2 4-4"
-                stroke="var(--color-accent)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <Logo compact size={60} />
           </div>
         </div>
         <TextField
