@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Screen } from "@/components/Screen";
 import { BottomNav } from "@/components/BottomNav";
 import { StatusBadge } from "@/components/StatusBadge";
+import { CameraBadge } from "@/components/PhotoBadge";
 import { Note } from "@/components/Note";
 import { Spinner } from "@/components/Spinner";
 import { useRequireStaff } from "@/lib/guards";
@@ -58,14 +59,17 @@ export default function HistoryPage() {
             {records.map((r) => (
               <li
                 key={r.id}
-                className="flex items-center gap-4 rounded-xl border border-line bg-surface p-3"
+                className="flex items-center gap-4 rounded-[var(--radius-card)] border border-line bg-surface p-3 elevation-card"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={r.photoUrl}
-                  alt="Photo taken when clocking in"
-                  className="h-16 w-16 shrink-0 rounded-lg object-cover"
-                />
+                <div className="relative h-16 w-16 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={r.photoUrl}
+                    alt="Photo taken when clocking in"
+                    className="h-16 w-16 rounded-lg object-cover"
+                  />
+                  <CameraBadge size={20} />
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[18px] font-bold text-ink">
                     {formatDate(r.timestamp)}

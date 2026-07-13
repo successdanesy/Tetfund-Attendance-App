@@ -4,25 +4,33 @@
 /* Design tokens - every screen consumes these, nothing hardcodes hex. */
 /* ------------------------------------------------------------------ */
 @theme {
-  --color-brand: #1b5e3f;
-  --color-brand-dark: #14472f;
+  --color-brand: #146b45;
+  --color-brand-dark: #0e4a30;
 
-  --color-surface: #f7f8f5;
-  --color-line: #dcdcd4;
+  /* Warm amber - the app's new secondary colour, for outline/utility actions. */
+  --color-accent: #d97706;
 
-  --color-ink: #1a1a18;
-  --color-ink-soft: #5c5c57;
+  --color-surface: #f6f7f5;
+  --color-line: #e2e5e1;
 
-  --color-success-bg: #eaf3de;
-  --color-success-ink: #173404;
+  --color-ink: #14171a;
+  --color-ink-soft: #5c6168;
+
+  --color-success-bg: #e7f2e9;
+  --color-success-ink: #0f3d21;
 
   --color-error-bg: #fcebeb;
-  --color-error-ink: #501313;
+  --color-error-ink: #b0261a;
 
   --color-pending-bg: #faeeda;
   --color-pending-ink: #412402;
 
   --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Manrope carries headings and nav/button labels; body stays Public Sans. */
+  --font-heading: var(--font-manrope), var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* Consistent card corner radius, replacing ad hoc rounded-xl/2xl. */
+  --radius-card: 14px;
 
   /* Minimum touch target for the whole app. */
   --spacing-touch: 56px;
@@ -43,6 +51,27 @@ body {
   line-height: 1.6;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Manrope is the display face for headings and nav/button labels. */
+h1,
+h2 {
+  font-family: var(--font-heading);
+}
+
+/* ------------------------------------------------------------------ */
+/* Elevation - soft shadows are new to this refresh (app had none).    */
+/* ------------------------------------------------------------------ */
+.elevation-card {
+  box-shadow:
+    0 2px 6px rgba(20, 23, 26, 0.04),
+    0 16px 32px rgba(20, 23, 26, 0.08);
+}
+.elevation-primary {
+  box-shadow: 0 8px 16px rgba(20, 107, 69, 0.22);
+}
+.elevation-accent {
+  box-shadow: 0 6px 14px rgba(217, 119, 6, 0.25);
 }
 
 /* Visible focus everywhere - accessibility floor, no hover-only reliance. */

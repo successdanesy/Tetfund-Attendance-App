@@ -3,7 +3,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Spinner } from "./Spinner";
 
-type Variant = "primary" | "secondary" | "danger";
+type Variant = "primary" | "secondary" | "danger" | "accent";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
@@ -18,15 +18,21 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 // Buttons: 18-20px weight 700, minimum 56px tall, full-width on mobile.
 const base =
   "inline-flex items-center justify-center gap-2 min-h-[var(--spacing-touch)] px-6 " +
-  "rounded-xl text-[19px] font-bold leading-tight transition-colors " +
+  "rounded-[var(--radius-card)] font-[family-name:var(--font-heading)] text-[19px] font-bold leading-tight transition-colors " +
   "disabled:opacity-50 disabled:cursor-not-allowed select-none";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-brand text-white hover:bg-brand-dark active:bg-brand-dark",
+  // Primary stays brand green; the new soft shadow gives it lift.
+  primary:
+    "bg-brand text-white hover:bg-brand-dark active:bg-brand-dark elevation-primary",
+  // Secondary is the amber accent - an outline for standalone actions.
   secondary:
-    "bg-white text-brand border-2 border-brand hover:bg-surface active:bg-surface",
+    "bg-white text-[color:var(--color-accent)] border-2 border-[color:var(--color-accent)] hover:bg-surface active:bg-surface",
   danger:
     "bg-white text-[color:var(--color-error-ink)] border-2 border-[color:var(--color-error-ink)] hover:bg-[color:var(--color-error-bg)]",
+  // Accent is solid amber for one-off utility actions (e.g. CSV export).
+  accent:
+    "bg-[color:var(--color-accent)] text-white hover:brightness-95 active:brightness-95 elevation-accent",
 };
 
 export function Button({

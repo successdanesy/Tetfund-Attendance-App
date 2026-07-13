@@ -59,15 +59,19 @@ export function CameraCapture({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A front-camera ("user") feed is shown mirrored so it behaves like a mirror;
+  // bake the same flip into the capture so the saved photo matches the preview.
+  const mirrored = facingMode === "user";
+
   const takePhoto = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    const url = videoToDataUrl(video);
+    const url = videoToDataUrl(video, mirrored);
     if (!url) return;
     setCaptured(url);
     setPhase("captured");
     stopStream();
-  }, [stopStream]);
+  }, [mirrored, stopStream]);
 
   const retake = useCallback(() => {
     setCaptured(null);
@@ -151,6 +155,7 @@ export function CameraCapture({
           playsInline
           muted
           className="h-full w-full object-cover"
+          style={mirrored ? { transform: "scaleX(-1)" } : undefined}
         />
         {phase === "starting" && (
           <div className="absolute inset-0 flex items-center justify-center text-ink-soft">

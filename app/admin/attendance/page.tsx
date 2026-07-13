@@ -73,7 +73,16 @@ export default function AttendancePage() {
       ) : (
         <>
           <div className="mb-5">
-            <Button fullWidth={false} onClick={exportCsv}>
+            <Button variant="accent" fullWidth={false} onClick={exportCsv}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M12 3v13m0 0l-5-5m5 5l5-5M4 21h16"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
               Download CSV
             </Button>
           </div>

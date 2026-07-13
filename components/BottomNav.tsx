@@ -65,14 +65,22 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-[64px] flex-col items-center justify-center gap-1 py-2 ${
+              className={`relative flex min-h-[64px] flex-col items-center justify-center gap-1 py-2 ${
                 active ? "text-brand" : "text-ink-soft"
               }`}
             >
+              {active && (
+                <span
+                  aria-hidden
+                  className="absolute top-0 h-1 w-1 rounded-full bg-[color:var(--color-accent)]"
+                />
+              )}
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
                 {item.icon}
               </svg>
-              <span className="text-[16px] font-bold">{item.label}</span>
+              <span className="font-[family-name:var(--font-heading)] text-[16px] font-bold">
+                {item.label}
+              </span>
             </Link>
           );
         })}

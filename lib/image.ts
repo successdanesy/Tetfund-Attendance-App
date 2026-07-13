@@ -9,6 +9,8 @@ function drawToDataUrl(
   source: CanvasImageSource,
   srcW: number,
   srcH: number,
+  // Mirror horizontally so a front-camera capture matches the mirrored preview.
+  mirror = false,
 ): string {
   const scale = Math.min(1, MAX_DIM / Math.max(srcW, srcH));
   const w = Math.round(srcW * scale);
@@ -18,15 +20,23 @@ function drawToDataUrl(
   canvas.height = h;
   const ctx = canvas.getContext("2d");
   if (!ctx) return "";
+  if (mirror) {
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
+  }
   ctx.drawImage(source, 0, 0, w, h);
   return canvas.toDataURL("image/jpeg", QUALITY);
 }
 
-export function videoToDataUrl(video: HTMLVideoElement): string {
+export function videoToDataUrl(
+  video: HTMLVideoElement,
+  mirror = false,
+): string {
   return drawToDataUrl(
     video,
     video.videoWidth || MAX_DIM,
     video.videoHeight || MAX_DIM,
+    mirror,
   );
 }
 

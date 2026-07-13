@@ -9,8 +9,10 @@ type Variant = "primary" | "secondary";
 type Size = "default" | "large";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-brand text-white hover:bg-brand-dark",
-  secondary: "border-2 border-brand bg-white text-brand hover:bg-surface",
+  primary: "bg-brand text-white hover:bg-brand-dark elevation-primary",
+  // Secondary is the amber accent outline (e.g. "Create account").
+  secondary:
+    "border-2 border-[color:var(--color-accent)] bg-white text-[color:var(--color-accent)] hover:bg-surface",
 };
 
 const sizes: Record<Size, string> = {
@@ -39,7 +41,7 @@ export function LinkButton({
   return (
     <Link
       href={href}
-      className={`flex w-full items-center justify-center gap-2 rounded-xl px-6 font-bold ${variants[variant]} ${sizes[size]}`}
+      className={`flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] px-6 font-[family-name:var(--font-heading)] font-bold ${variants[variant]} ${sizes[size]}`}
     >
       <PendingSpinner />
       {children}

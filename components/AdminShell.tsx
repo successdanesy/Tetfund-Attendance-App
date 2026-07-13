@@ -70,19 +70,15 @@ export function AdminShell({
                 key={t.href}
                 href={t.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[52px] items-center gap-2 rounded-t-lg px-4 text-[18px] font-bold ${
+                className={`flex min-h-[52px] items-center gap-2 rounded-t-lg px-4 font-[family-name:var(--font-heading)] text-[18px] font-bold ${
                   active
-                    ? "bg-white text-brand"
+                    ? "bg-white text-brand [box-shadow:0_-2px_0_var(--color-accent)_inset]"
                     : "text-white/90 hover:bg-brand-dark"
                 }`}
               >
                 {t.label}
                 {t.count > 0 && (
-                  <span
-                    className={`inline-flex min-w-6 items-center justify-center rounded-full px-2 text-[16px] ${
-                      active ? "bg-brand text-white" : "bg-white text-brand"
-                    }`}
-                  >
+                  <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[color:var(--color-accent)] px-2 text-[16px] text-white">
                     {t.count}
                   </span>
                 )}

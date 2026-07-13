@@ -9,7 +9,7 @@ export function Stamp({ size = 128 }: { size?: number }) {
 
   return (
     <div
-      className="stamp-pop"
+      className="stamp-pop relative flex items-center justify-center"
       style={
         {
           "--ring-length": ringLength,
@@ -17,6 +17,17 @@ export function Stamp({ size = 128 }: { size?: number }) {
         } as React.CSSProperties
       }
     >
+      {/* Soft amber glow behind the stamp, ~1.1x its size. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute rounded-full"
+        style={{
+          width: size * 1.1,
+          height: size * 1.1,
+          background:
+            "radial-gradient(circle, rgba(217,119,6,0.14), rgba(217,119,6,0) 70%)",
+        }}
+      />
       <svg
         width={size}
         height={size}
@@ -24,6 +35,7 @@ export function Stamp({ size = 128 }: { size?: number }) {
         fill="none"
         role="img"
         aria-label="Marked present"
+        className="relative"
       >
         <circle
           className="stamp-ring"
@@ -37,7 +49,7 @@ export function Stamp({ size = 128 }: { size?: number }) {
         <path
           className="stamp-check"
           d="M42 66l14 14 30-32"
-          stroke="var(--color-brand)"
+          stroke="var(--color-accent)"
           strokeWidth="9"
           strokeLinecap="round"
           strokeLinejoin="round"

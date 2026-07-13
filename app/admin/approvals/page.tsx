@@ -5,6 +5,7 @@ import { AdminShell } from "@/components/AdminShell";
 import { Button } from "@/components/Button";
 import { Note } from "@/components/Note";
 import { Spinner } from "@/components/Spinner";
+import { PendingBadge } from "@/components/PhotoBadge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useRequireAdmin } from "@/lib/guards";
 import { api } from "@/lib/api";
@@ -115,15 +116,18 @@ export default function ApprovalsPage() {
           {list.map((s) => (
             <li
               key={s.id}
-              className="rounded-2xl border border-line bg-surface p-4"
+              className="rounded-[18px] border border-line bg-surface p-4 elevation-card"
             >
               <div className="flex items-start gap-4">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={s.referencePhotoUrl}
-                  alt={`Reference photo of ${s.firstName} ${s.lastName}`}
-                  className="h-20 w-20 shrink-0 rounded-lg border border-line object-cover"
-                />
+                <div className="relative h-20 w-20 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.referencePhotoUrl}
+                    alt={`Reference photo of ${s.firstName} ${s.lastName}`}
+                    className="h-20 w-20 rounded-lg border border-line object-cover"
+                  />
+                  <PendingBadge size={22} />
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[20px] font-bold text-ink">
                     {s.firstName} {s.lastName}
