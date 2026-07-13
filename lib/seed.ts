@@ -24,6 +24,18 @@ export const ADMIN_PASSWORD = "admin";
 // as one of them manually.
 export const SEED_PASSWORD = "demo1234";
 
+// Precomputed bcrypt hashes of the two demo passwords above. Hashing at cost 10
+// is deliberately slow (~100ms each); baking the hashes in keeps them out of
+// the cold-start seed path so a fresh process doesn't stall on bcrypt.
+export const ADMIN_PASSWORD_HASH =
+  "$2b$10$NGw0wnFMdA6fHBgaTR9Ob.CeEFEH8Agbl3b39F3cgfu9utH3xRnji";
+export const SEED_PASSWORD_HASH =
+  "$2b$10$hyhrspq85L32rYQsNBf3PuJ/Z4CCZVaW.mluUxBJZrhhy1yQReCdK";
+
+// Bump when the seed shape changes so an already-seeded database re-seeds. The
+// seed marker doc stores this, letting ensureSeed() skip the work in one query.
+export const SEED_VERSION = 1;
+
 export type SeedStaff = {
   id: string;
   email: string;

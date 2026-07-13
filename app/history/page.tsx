@@ -66,6 +66,7 @@ export default function HistoryPage() {
                   <img
                     src={r.photoUrl}
                     alt="Photo taken when clocking in"
+                    loading="lazy"
                     className="h-16 w-16 rounded-lg object-cover"
                   />
                   <CameraBadge size={20} />

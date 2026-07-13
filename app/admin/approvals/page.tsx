@@ -124,6 +124,7 @@ export default function ApprovalsPage() {
                   <img
                     src={s.referencePhotoUrl}
                     alt={`Reference photo of ${s.firstName} ${s.lastName}`}
+                    loading="lazy"
                     className="h-20 w-20 rounded-lg border border-line object-cover"
                   />
                   <PendingBadge size={22} />

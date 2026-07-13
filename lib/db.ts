@@ -12,9 +12,10 @@ import type {
 import {
   SEED_DEPARTMENTS,
   SEED_ADMIN,
-  ADMIN_PASSWORD,
+  ADMIN_PASSWORD_HASH,
   SEED_STAFF,
-  SEED_PASSWORD,
+  SEED_PASSWORD_HASH,
+  SEED_VERSION,
 } from "./seed";
 import { checkGeofence, OFFICE_LOCATION } from "./geo";
 import { canClockIn } from "./access";
@@ -31,6 +32,7 @@ type StaffDoc = Omit<Staff, "id"> & {
 type AttendanceDoc = Omit<AttendanceRecord, "id"> & { _id: string };
 type AdminDoc = Omit<AdminUser, "id"> & { _id: string; passwordHash: string };
 type DepartmentDoc = { _id: string; name: string };
+type MetaDoc = { _id: string; seedVersion: number };
 
 function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -43,6 +45,7 @@ async function collections() {
     staff: db.collection<StaffDoc>("staff"),
     attendance: db.collection<AttendanceDoc>("attendance"),
     admins: db.collection<AdminDoc>("admins"),
+    meta: db.collection<MetaDoc>("meta"),
   };
 }
 
@@ -50,6 +53,20 @@ function toStaff(doc: StaffDoc): Staff {
   const { _id, passwordHash: _hash, ...rest } = doc;
   void _hash;
   return { id: _id, ...rest };
+}
+
+// List variant: the heavy base64 photo is dropped from the query and replaced
+// with a lightweight URL to the on-demand image route, so list payloads stay
+// small and the browser fetches (and caches) each photo lazily.
+type StaffListDoc = Omit<StaffDoc, "referencePhotoUrl" | "passwordHash">;
+
+function toStaffListItem(doc: StaffListDoc): Staff {
+  const { _id, ...rest } = doc;
+  return {
+    id: _id,
+    referencePhotoUrl: `/api/staff/${_id}/photo`,
+    ...rest,
+  };
 }
 
 // A simple initials avatar as an inline SVG data URL - used as the reference
@@ -75,6 +92,18 @@ function toRecord(doc: AttendanceDoc): AttendanceRecord {
   return { id: _id, ...rest };
 }
 
+// List variant: same photo-as-URL treatment as staff (see toStaffListItem).
+type AttendanceListDoc = Omit<AttendanceDoc, "photoUrl">;
+
+function toRecordListItem(doc: AttendanceListDoc): AttendanceRecord {
+  const { _id, ...rest } = doc;
+  return {
+    id: _id,
+    photoUrl: `/api/attendance/${_id}/photo`,
+    ...rest,
+  };
+}
+
 // Start of the current UTC day, used to scope "today's" attendance.
 function startOfTodayIso(): string {
   const now = new Date();
@@ -98,9 +127,15 @@ let seeded = false;
 // Idempotent seed of departments, admin, and the starter staff roster. Always
 // re-runnable, so reset can call it to restore the seeded accounts.
 async function upsertSeed(): Promise<void> {
-  const { departments, staff, admins, attendance } = await collections();
+  const { departments, staff, admins, attendance, meta } = await collections();
 
-  await staff.createIndex({ email: 1 }, { unique: true }).catch(() => {});
+  // Indexes backing the queries below; idempotent, so safe to re-run.
+  await Promise.all([
+    staff.createIndex({ email: 1 }, { unique: true }).catch(() => {}),
+    staff.createIndex({ status: 1 }).catch(() => {}),
+    attendance.createIndex({ staffId: 1, timestamp: -1 }).catch(() => {}),
+    attendance.createIndex({ timestamp: -1 }).catch(() => {}),
+  ]);
 
   await Promise.all(
     SEED_DEPARTMENTS.map((d) =>
@@ -118,13 +153,13 @@ async function upsertSeed(): Promise<void> {
       $setOnInsert: {
         email: SEED_ADMIN.email,
         name: SEED_ADMIN.name,
-        passwordHash: await bcrypt.hash(ADMIN_PASSWORD, 10),
+        passwordHash: ADMIN_PASSWORD_HASH,
       },
     },
     { upsert: true },
   );
 
-  const seedHash = await bcrypt.hash(SEED_PASSWORD, 10);
+  const seedHash = SEED_PASSWORD_HASH;
   await Promise.all(
     SEED_STAFF.map((s) =>
       staff
@@ -185,20 +220,47 @@ async function upsertSeed(): Promise<void> {
       ),
     ),
   );
+
+  // Record that this version is seeded, so future cold starts skip the work
+  // above after a single cheap marker read (see ensureSeed).
+  await meta.updateOne(
+    { _id: "seed" },
+    { $set: { seedVersion: SEED_VERSION } },
+    { upsert: true },
+  );
 }
 
-// Called on every request but does the work only once per process.
+// Called on read paths but does the real work at most once per process. On a
+// cold start it costs one marker read; only an unseeded/out-of-date database
+// pays for the full upsert.
 export async function ensureSeed(): Promise<void> {
   if (seeded) return;
+  const { meta } = await collections();
+  const marker = await meta.findOne({ _id: "seed" });
+  if (marker?.seedVersion === SEED_VERSION) {
+    seeded = true;
+    return;
+  }
   await upsertSeed();
   seeded = true;
 }
 
+// Departments are effectively static (seeded once, never edited in the app), so
+// a short in-process cache removes a DB round-trip from most page loads.
+let departmentsCache: { at: number; data: Department[] } | null = null;
+const DEPARTMENTS_TTL_MS = 5 * 60 * 1000;
+
 export async function getDepartments(): Promise<Department[]> {
+  const now = Date.now();
+  if (departmentsCache && now - departmentsCache.at < DEPARTMENTS_TTL_MS) {
+    return departmentsCache.data;
+  }
   await ensureSeed();
   const { departments } = await collections();
   const docs = await departments.find().sort({ name: 1 }).toArray();
-  return docs.map((d) => ({ id: d._id, name: d.name }));
+  const data = docs.map((d) => ({ id: d._id, name: d.name }));
+  departmentsCache = { at: now, data };
+  return data;
 }
 
 export async function findStaffByEmail(
@@ -240,20 +302,38 @@ export async function createStaff(input: CreateStaffInput): Promise<Staff> {
   return toStaff(doc);
 }
 
+// Projection dropping the fields that never belong in a list payload: the big
+// base64 photo (served on demand instead) and the password hash.
+const STAFF_LIST_PROJECTION = { referencePhotoUrl: 0, passwordHash: 0 } as const;
+
 export async function getStaffByIds(ids: string[]): Promise<Staff[]> {
   if (ids.length === 0) return [];
   const { staff } = await collections();
-  const docs = await staff.find({ _id: { $in: ids } }).toArray();
-  return docs.map(toStaff);
+  const docs = await staff
+    .find({ _id: { $in: ids } })
+    .project<StaffListDoc>(STAFF_LIST_PROJECTION)
+    .toArray();
+  return docs.map(toStaffListItem);
 }
 
 export async function listPendingStaff(): Promise<Staff[]> {
   const { staff } = await collections();
   const docs = await staff
     .find({ status: "pending" })
+    .project<StaffListDoc>(STAFF_LIST_PROJECTION)
     .sort({ createdAt: 1 })
     .toArray();
-  return docs.map(toStaff);
+  return docs.map(toStaffListItem);
+}
+
+// Just the reference photo for one account, for the on-demand image route.
+export async function getStaffPhoto(id: string): Promise<string | null> {
+  const { staff } = await collections();
+  const doc = await staff.findOne(
+    { _id: id },
+    { projection: { referencePhotoUrl: 1 } },
+  );
+  return doc?.referencePhotoUrl ?? null;
 }
 
 export async function setStaffStatus(
@@ -320,20 +400,24 @@ export async function getTodayForStaff(
   staffId: string,
 ): Promise<AttendanceRecord | null> {
   const { attendance } = await collections();
-  const doc = await attendance.findOne({
-    staffId,
-    timestamp: { $gte: startOfTodayIso() },
-  });
-  return doc ? toRecord(doc) : null;
+  const doc = await attendance.findOne(
+    { staffId, timestamp: { $gte: startOfTodayIso() } },
+    { projection: ATTENDANCE_LIST_PROJECTION },
+  );
+  return doc ? toRecordListItem(doc) : null;
 }
+
+// Drop the base64 photo from list queries; it is served on demand instead.
+const ATTENDANCE_LIST_PROJECTION = { photoUrl: 0 } as const;
 
 export async function getTodaysAttendance(): Promise<AttendanceRecord[]> {
   const { attendance } = await collections();
   const docs = await attendance
     .find({ timestamp: { $gte: startOfTodayIso() } })
+    .project<AttendanceListDoc>(ATTENDANCE_LIST_PROJECTION)
     .sort({ timestamp: -1 })
     .toArray();
-  return docs.map(toRecord);
+  return docs.map(toRecordListItem);
 }
 
 export async function getRecordsForStaff(
@@ -342,9 +426,10 @@ export async function getRecordsForStaff(
   const { attendance } = await collections();
   const docs = await attendance
     .find({ staffId })
+    .project<AttendanceListDoc>(ATTENDANCE_LIST_PROJECTION)
     .sort({ timestamp: -1 })
     .toArray();
-  return docs.map(toRecord);
+  return docs.map(toRecordListItem);
 }
 
 export async function getAttendanceById(
@@ -353,6 +438,16 @@ export async function getAttendanceById(
   const { attendance } = await collections();
   const doc = await attendance.findOne({ _id: id });
   return doc ? toRecord(doc) : null;
+}
+
+// Just the photo for one record, for the on-demand image route.
+export async function getAttendancePhoto(id: string): Promise<string | null> {
+  const { attendance } = await collections();
+  const doc = await attendance.findOne(
+    { _id: id },
+    { projection: { photoUrl: 1 } },
+  );
+  return doc?.photoUrl ?? null;
 }
 
 // Wipe staff + attendance, then restore the seeded roster, so a pitch can start

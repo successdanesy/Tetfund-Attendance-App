@@ -111,6 +111,7 @@ export default function AttendancePage() {
                           <img
                             src={r.photoUrl}
                             alt=""
+                            loading="lazy"
                             className="h-12 w-12 shrink-0 rounded-lg object-cover"
                           />
                           <span>
