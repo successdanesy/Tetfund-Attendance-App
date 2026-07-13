@@ -1,11 +1,30 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { LinkButton } from "@/components/LinkButton";
+import { hasSeenOnboarding } from "@/lib/onboarding";
 
-// Welcome - logo, one primary and one secondary action, nothing else.
+// Welcome - logo, one primary and one secondary action, nothing else. First-time
+// visitors are sent to the intro carousel before they ever see this.
 export default function WelcomePage() {
+  const router = useRouter();
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    if (!hasSeenOnboarding()) {
+      router.replace("/onboarding");
+      return;
+    }
+    setChecked(true);
+  }, [router]);
+
+  // Hold the screen blank for the instant the localStorage check takes, so a
+  // first-time visitor doesn't see Welcome flash before the carousel.
+  if (!checked) return null;
+
   return (
     <div className="flex min-h-dvh flex-col bg-white">
       <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-5">
@@ -23,7 +42,7 @@ export default function WelcomePage() {
             <Logo compact size={96} />
           </div>
           <h1 className="mt-6 text-[30px] font-bold leading-tight text-ink">
-            TETFUND Staff Attendance
+            TETFUND <br /> Staff Attendance
           </h1>
           <p className="mt-3 max-w-[380px] text-ink-soft">
             Clock in each day with your photo and location - no paper register.

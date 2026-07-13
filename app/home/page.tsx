@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Screen } from "@/components/Screen";
 import { LinkButton } from "@/components/LinkButton";
 import { BottomNav } from "@/components/BottomNav";
@@ -10,15 +11,25 @@ import { Spinner } from "@/components/Spinner";
 import { useSession } from "@/lib/session";
 import { useRequireStaff } from "@/lib/guards";
 import { canClockIn } from "@/lib/access";
+import { hasSeenSetup } from "@/lib/onboarding";
 import { api } from "@/lib/api";
 import { formatTime } from "@/lib/format";
 import type { AttendanceRecord } from "@/lib/types";
 
 export default function HomePage() {
+  const router = useRouter();
   const staff = useRequireStaff();
   const { refreshStaff } = useSession();
   const [loading, setLoading] = useState(true);
   const [todayRecord, setTodayRecord] = useState<AttendanceRecord | null>(null);
+
+  // First visit after approval: run the one-time guided setup before anything
+  // else, so the permission primers come ahead of the first clock-in.
+  useEffect(() => {
+    if (staff && canClockIn(staff) && !hasSeenSetup(staff.id)) {
+      router.replace("/setup");
+    }
+  }, [staff, router]);
 
   useEffect(() => {
     if (!staff) return;
