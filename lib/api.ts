@@ -87,6 +87,7 @@ export const api = {
     photoUrl: string;
     latitude: number;
     longitude: number;
+    accuracy: number;
     address: string;
   }) =>
     request<{ record: AttendanceRecord }>("/api/attendance", {

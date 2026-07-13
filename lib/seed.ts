@@ -5,10 +5,21 @@ import type { AdminUser, Department } from "./types";
 // approval, and a few already approved and clocked in for today.
 export const SEED_DEPARTMENTS: Department[] = [
   { id: "dep-finance", name: "Finance" },
+  { id: "dep-audit", name: "Audit" },
+  { id: "dep-servicom", name: "Servicom" },
+  { id: "dep-procurement", name: "Procurement" },
+  { id: "dep-ri", name: "R&I" },
+  { id: "dep-ess", name: "ESS" },
+  { id: "dep-deso", name: "DESO" },
+  { id: "dep-rd", name: "R&D" },
+  { id: "dep-astd", name: "AST&D" },
+  { id: "dep-legal", name: "Legal" },
+  { id: "dep-public-affairs", name: "Public Affairs" },
+  { id: "dep-me", name: "M&E" },
+  { id: "dep-spd", name: "SPD" },
+  { id: "dep-pi", name: "PI" },
+  { id: "dep-hrga", name: "HR&GA" },
   { id: "dep-ict", name: "ICT" },
-  { id: "dep-research", name: "Research and Innovation" },
-  { id: "dep-admin", name: "Administration" },
-  { id: "dep-me", name: "Monitoring and Evaluation" },
 ];
 
 export const SEED_ADMIN: AdminUser = {
@@ -34,7 +45,7 @@ export const SEED_PASSWORD_HASH =
 
 // Bump when the seed shape changes so an already-seeded database re-seeds. The
 // seed marker doc stores this, letting ensureSeed() skip the work in one query.
-export const SEED_VERSION = 1;
+export const SEED_VERSION = 2;
 
 export type SeedStaff = {
   id: string;
@@ -75,7 +86,7 @@ export const SEED_STAFF: SeedStaff[] = [
     email: "grace.eze@tetfund.gov.ng",
     firstName: "Grace",
     lastName: "Eze",
-    departmentId: "dep-research",
+    departmentId: "dep-ri",
     avatarColor: "#3a4a6b",
     status: "pending",
   },
@@ -86,7 +97,7 @@ export const SEED_STAFF: SeedStaff[] = [
     email: "ngozi.okafor@tetfund.gov.ng",
     firstName: "Ngozi",
     lastName: "Okafor",
-    departmentId: "dep-admin",
+    departmentId: "dep-hrga",
     avatarColor: "#7a3b6b",
     status: "approved",
     clockInMinute: 5,

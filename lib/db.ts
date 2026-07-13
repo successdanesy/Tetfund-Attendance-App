@@ -137,15 +137,21 @@ async function upsertSeed(): Promise<void> {
     attendance.createIndex({ timestamp: -1 }).catch(() => {}),
   ]);
 
+  // Sync departments to exactly the seed list: upsert names (so renames apply)
+  // and drop any department no longer in the list, keeping the dropdown clean.
   await Promise.all(
     SEED_DEPARTMENTS.map((d) =>
       departments.updateOne(
         { _id: d.id },
-        { $setOnInsert: { name: d.name } },
+        { $set: { name: d.name } },
         { upsert: true },
       ),
     ),
   );
+  await departments.deleteMany({
+    _id: { $nin: SEED_DEPARTMENTS.map((d) => d.id) },
+  });
+  departmentsCache = null; // seed changed the list; drop the cached copy
 
   await admins.updateOne(
     { _id: SEED_ADMIN.id },
@@ -358,15 +364,25 @@ export type SubmitAttendanceInput = {
   photoUrl: string;
   latitude: number;
   longitude: number;
+  accuracy: number;
   address: string;
 };
 
 export type SubmitResult =
   | { ok: true; record: AttendanceRecord }
-  | { ok: false; reason: "not-approved" | "outside-geofence" | "no-staff" };
+  | {
+      ok: false;
+      reason:
+        | "not-approved"
+        | "outside-geofence"
+        | "weak-signal"
+        | "no-staff";
+    };
 
 // Server is authoritative: it re-checks approval and re-computes the geofence
-// from the raw coordinates rather than trusting the client's verdict.
+// (accuracy included) from the raw coordinates rather than trusting the
+// client's verdict, so neither the "use anyway" path nor a hand-crafted request
+// can bypass the location gate.
 export async function submitAttendance(
   input: SubmitAttendanceInput,
 ): Promise<SubmitResult> {
@@ -375,10 +391,12 @@ export async function submitAttendance(
   if (!staff) return { ok: false, reason: "no-staff" };
   if (!canClockIn(staff)) return { ok: false, reason: "not-approved" };
 
-  const { withinGeofence, distance } = checkGeofence(
+  const { withinGeofence, tooInaccurate, distance } = checkGeofence(
     input.latitude,
     input.longitude,
+    input.accuracy,
   );
+  if (tooInaccurate) return { ok: false, reason: "weak-signal" };
   if (!withinGeofence) return { ok: false, reason: "outside-geofence" };
 
   const doc: AttendanceDoc = {
@@ -388,6 +406,7 @@ export async function submitAttendance(
     latitude: input.latitude,
     longitude: input.longitude,
     distanceFromOfficeMeters: distance,
+    accuracyMeters: input.accuracy,
     withinGeofence: true,
     address: input.address,
     timestamp: new Date().toISOString(),

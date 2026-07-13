@@ -11,12 +11,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { canClockIn } from "@/lib/access";
 import { api, ApiError } from "@/lib/api";
 import { useRequireStaff } from "@/lib/guards";
-import {
-  checkGeofence,
-  formatDistance,
-  OFFICE_LOCATION,
-  ACCURACY_WARN_METERS,
-} from "@/lib/geo";
+import { checkGeofence, formatDistance, OFFICE_LOCATION } from "@/lib/geo";
 import { formatTime } from "@/lib/format";
 
 type Phase =
@@ -61,9 +56,13 @@ export default function ClockInPage() {
 
   function evaluate(r: Reading) {
     setReading(r);
-    const { withinGeofence, distance } = checkGeofence(r.lat, r.lon);
+    const { withinGeofence, tooInaccurate, distance } = checkGeofence(
+      r.lat,
+      r.lon,
+      r.accuracy,
+    );
     setDistance(distance);
-    if (r.accuracy > ACCURACY_WARN_METERS) {
+    if (tooInaccurate) {
       setPhase("weak");
     } else if (!withinGeofence) {
       setPhase("blocked");
@@ -72,22 +71,39 @@ export default function ClockInPage() {
     }
   }
 
+  // Sample the position for a few seconds and keep the most accurate fix, rather
+  // than trusting the first (often fuzzy) reading. Stops early once a precise
+  // fix arrives.
   function requestLocation() {
     setPhase("locating");
     if (!("geolocation" in navigator)) {
       setPhase("geoerror");
       return;
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        evaluate({
+    let best: Reading | null = null;
+    let settled = false;
+    let watchId = 0;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      navigator.geolocation.clearWatch(watchId);
+      if (best) evaluate(best);
+      else setPhase("geoerror");
+    };
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const r: Reading = {
           lat: pos.coords.latitude,
           lon: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
-        }),
-      () => setPhase("geoerror"),
+        };
+        if (!best || r.accuracy < best.accuracy) best = r;
+        if (r.accuracy <= 20) finish(); // already precise enough
+      },
+      () => finish(),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
+    window.setTimeout(finish, 6000);
   }
 
   // Demo control - pretend we're standing at the office so the happy path is
@@ -99,13 +115,6 @@ export default function ClockInPage() {
       lon: OFFICE_LOCATION.longitude,
       accuracy: 8,
     });
-  }
-
-  // From the weak-signal screen: trust the reading despite poor accuracy.
-  function continueAnyway() {
-    if (!reading) return;
-    const { withinGeofence } = checkGeofence(reading.lat, reading.lon);
-    setPhase(withinGeofence ? "camera" : "blocked");
   }
 
   function onPhotoConfirmed(photoUrl: string) {
@@ -123,6 +132,7 @@ export default function ClockInPage() {
         photoUrl: pendingPhoto,
         latitude: reading.lat,
         longitude: reading.lon,
+        accuracy: reading.accuracy,
         address: `${reading.lat.toFixed(5)}, ${reading.lon.toFixed(5)}`,
       });
       setShowConfirm(false);
@@ -208,14 +218,11 @@ export default function ClockInPage() {
             <p className="mt-2">
               The reading is only accurate to about{" "}
               {formatDistance(reading?.accuracy ?? 0)}, which isn&apos;t precise
-              enough to trust. Try moving near a window or outside, then check
-              again.
+              enough to confirm you&apos;re at the office. Move near a window or
+              step outside, then check again.
             </p>
           </Note>
           <Button onClick={requestLocation}>Check my location again</Button>
-          <Button variant="secondary" onClick={continueAnyway}>
-            Use this reading anyway
-          </Button>
         </div>
       )}
 

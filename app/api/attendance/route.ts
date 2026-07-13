@@ -30,12 +30,15 @@ const REASON_STATUS: Record<string, number> = {
   "no-staff": 404,
   "not-approved": 403,
   "outside-geofence": 422,
+  "weak-signal": 422,
 };
 
 const REASON_MESSAGE: Record<string, string> = {
   "no-staff": "Account not found.",
   "not-approved": "Your account is still awaiting approval.",
   "outside-geofence": "You need to be at the office to clock in.",
+  "weak-signal":
+    "Your location signal is too weak to verify you're at the office.",
 };
 
 export async function POST(req: Request) {
@@ -45,7 +48,8 @@ export async function POST(req: Request) {
     typeof body.staffId !== "string" ||
     typeof body.photoUrl !== "string" ||
     typeof body.latitude !== "number" ||
-    typeof body.longitude !== "number"
+    typeof body.longitude !== "number" ||
+    typeof body.accuracy !== "number"
   ) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
@@ -55,6 +59,7 @@ export async function POST(req: Request) {
     photoUrl: body.photoUrl,
     latitude: body.latitude,
     longitude: body.longitude,
+    accuracy: body.accuracy,
     address: typeof body.address === "string" ? body.address : "",
   });
 

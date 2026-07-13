@@ -23,6 +23,7 @@ export type AttendanceRecord = {
   latitude: number;
   longitude: number;
   distanceFromOfficeMeters: number;
+  accuracyMeters?: number; // GPS accuracy radius of the clock-in reading
   withinGeofence: boolean;
   address: string; // reverse-geocoded, or fallback coordinate string
   timestamp: string;
