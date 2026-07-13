@@ -33,12 +33,17 @@ the server; the signed-in user is remembered on the device.
 Use **Chrome on `localhost`** (or an HTTPS URL such as your Vercel deployment) -
 the camera and location APIs only work in a secure context.
 
-The first request seeds the database automatically: 5 departments, one admin
-(`admin@tetfund.gov.ng` / `admin`), and 3 pre-approved **demo staff** shown on
-the sign-in screen. Presenters can tap a demo account to enter instantly - no
-sign-up needed - while real sign-up and password login still work. Only these
-seeded `isDemo` accounts can be tap-entered; real accounts always need a
-password. The demo accounts are restored whenever you *Reset demo data*.
+The first request seeds the database automatically so the admin screens are
+never empty:
+
+- 5 departments and one admin (`admin@tetfund.gov.ng` / `admin`).
+- 3 staff **waiting for approval**, so the *Approvals* screen has accounts to
+  review the moment you sign in as admin.
+- 3 **approved** staff who have already **clocked in today**, so *Today's
+  attendance* and the CSV export are populated.
+
+All seeded staff share the password `demo1234` if you want to sign in as one of
+them. The whole roster is restored whenever you *Reset demo data*.
 
 ## Deploying to Vercel
 
@@ -52,16 +57,15 @@ phone there with no extra setup.
 
 ## Live demo script
 
-1. **Fastest path** - on the sign-in screen, tap a demo staff member to enter
-   as them and go straight to clocking in. To show the full journey instead,
-   tap *Create account* and walk the 5-step wizard: work email (try a
-   `@gmail.com` address first to show it being rejected), name, department,
-   password, and a reference selfie. Ends on *Account created - pending
-   approval*.
-2. **Admin approves** - tap *Administrator sign in* (`admin@tetfund.gov.ng` /
-   `admin`) and approve the new account under *Approvals*. Because data is now
-   persisted, you can sign up on a phone and watch it appear in admin on a
-   laptop live.
+1. **Sign up** - tap *Create account* and walk the 5-step wizard: work email
+   (try a `@gmail.com` address first to show it being rejected), name,
+   department, password, and a reference selfie. Ends on *Account created -
+   pending approval*.
+2. **Admin approves** - tap *Administrator sign in*. The email and password are
+   already filled in, so just tap *Sign in*. The *Approvals* screen already
+   lists the seeded pending accounts plus your new sign-up. Approve one. Because
+   data is persisted, you can sign up on a phone and watch it appear in admin on
+   a laptop live.
 3. **Clock in** - sign in as the staff member. On the clock-in screen, tap
    *Simulate office location (demo)* so the geofence passes wherever you're
    presenting (the real office is in Maitama, Abuja). Take the photo, submit,

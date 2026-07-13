@@ -13,10 +13,10 @@ import {
   SEED_DEPARTMENTS,
   SEED_ADMIN,
   ADMIN_PASSWORD,
-  SEED_DEMO_STAFF,
-  DEMO_PASSWORD,
+  SEED_STAFF,
+  SEED_PASSWORD,
 } from "./seed";
-import { checkGeofence } from "./geo";
+import { checkGeofence, OFFICE_LOCATION } from "./geo";
 import { canClockIn } from "./access";
 
 // ---------------------------------------------------------------------------
@@ -27,7 +27,6 @@ import { canClockIn } from "./access";
 type StaffDoc = Omit<Staff, "id"> & {
   _id: string;
   passwordHash: string;
-  isDemo?: boolean;
 };
 type AttendanceDoc = Omit<AttendanceRecord, "id"> & { _id: string };
 type AdminDoc = Omit<AdminUser, "id"> & { _id: string; passwordHash: string };
@@ -48,9 +47,8 @@ async function collections() {
 }
 
 function toStaff(doc: StaffDoc): Staff {
-  const { _id, passwordHash: _hash, isDemo: _demo, ...rest } = doc;
+  const { _id, passwordHash: _hash, ...rest } = doc;
   void _hash;
-  void _demo;
   return { id: _id, ...rest };
 }
 
@@ -85,12 +83,22 @@ function startOfTodayIso(): string {
   ).toISOString();
 }
 
+// A clock-in timestamp for a seeded record: today at 08:00 UTC plus `minute`.
+// Recomputed on every seed run so seeded attendance always reads as "today",
+// even on a cold start days after the record was first written.
+function seededClockInIso(minute: number): string {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 8, minute),
+  ).toISOString();
+}
+
 let seeded = false;
 
-// Idempotent seed of departments, admin, and demo staff. Always re-runnable
-// (upserts only), so reset can call it to restore the demo accounts.
+// Idempotent seed of departments, admin, and the starter staff roster. Always
+// re-runnable, so reset can call it to restore the seeded accounts.
 async function upsertSeed(): Promise<void> {
-  const { departments, staff, admins } = await collections();
+  const { departments, staff, admins, attendance } = await collections();
 
   await staff.createIndex({ email: 1 }, { unique: true }).catch(() => {});
 
@@ -116,26 +124,61 @@ async function upsertSeed(): Promise<void> {
     { upsert: true },
   );
 
-  const demoHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const seedHash = await bcrypt.hash(SEED_PASSWORD, 10);
   await Promise.all(
-    SEED_DEMO_STAFF.map((s) =>
-      staff.updateOne(
-        { _id: s.id },
+    SEED_STAFF.map((s) =>
+      staff
+        .updateOne(
+          { _id: s.id },
+          {
+            // $setOnInsert so an approval done during a live demo isn't reverted
+            // by a later seed run; reset wipes staff first, then re-inserts.
+            $setOnInsert: {
+              email: s.email,
+              firstName: s.firstName,
+              lastName: s.lastName,
+              departmentId: s.departmentId,
+              referencePhotoUrl: avatarDataUrl(
+                s.firstName,
+                s.lastName,
+                s.avatarColor,
+              ),
+              passwordHash: seedHash,
+              status: s.status,
+              createdAt: new Date().toISOString(),
+            },
+          },
+          { upsert: true },
+        )
+        // An account with this email may already exist under a different id
+        // (e.g. leftover from an earlier seed). That's fine - skip it rather
+        // than letting a duplicate-key error break the whole seed.
+        .catch((err: unknown) => {
+          if ((err as { code?: number })?.code === 11000) return;
+          throw err;
+        }),
+    ),
+  );
+
+  // Seeded clock-ins for the already-approved staff, so "Today's attendance"
+  // and the CSV export are populated. Stable ids + $set keep the timestamps
+  // refreshed to the current day without creating duplicates.
+  await Promise.all(
+    SEED_STAFF.filter(
+      (s) => s.status === "approved" && s.clockInMinute !== undefined,
+    ).map((s) =>
+      attendance.updateOne(
+        { _id: `att-seed-${s.id}` },
         {
-          $setOnInsert: {
-            email: s.email,
-            firstName: s.firstName,
-            lastName: s.lastName,
-            departmentId: s.departmentId,
-            referencePhotoUrl: avatarDataUrl(
-              s.firstName,
-              s.lastName,
-              s.avatarColor,
-            ),
-            passwordHash: demoHash,
-            status: "approved",
-            isDemo: true,
-            createdAt: new Date().toISOString(),
+          $set: {
+            staffId: s.id,
+            photoUrl: avatarDataUrl(s.firstName, s.lastName, s.avatarColor),
+            latitude: OFFICE_LOCATION.latitude,
+            longitude: OFFICE_LOCATION.longitude,
+            distanceFromOfficeMeters: 0,
+            withinGeofence: true,
+            address: "TETFUND Headquarters, Maitama, Abuja",
+            timestamp: seededClockInIso(s.clockInMinute as number),
           },
         },
         { upsert: true },
@@ -149,21 +192,6 @@ export async function ensureSeed(): Promise<void> {
   if (seeded) return;
   await upsertSeed();
   seeded = true;
-}
-
-export async function listDemoStaff(): Promise<Staff[]> {
-  await ensureSeed();
-  const { staff } = await collections();
-  const docs = await staff.find({ isDemo: true }).sort({ firstName: 1 }).toArray();
-  return docs.map(toStaff);
-}
-
-// Enter a demo account with a tap - only permitted for seeded `isDemo` staff,
-// so real accounts still require their password.
-export async function demoLogin(staffId: string): Promise<Staff | null> {
-  const { staff } = await collections();
-  const doc = await staff.findOne({ _id: staffId, isDemo: true });
-  return doc ? toStaff(doc) : null;
 }
 
 export async function getDepartments(): Promise<Department[]> {
@@ -327,8 +355,8 @@ export async function getAttendanceById(
   return doc ? toRecord(doc) : null;
 }
 
-// Wipe staff + attendance, then restore the seeded demo accounts, so a pitch
-// can start from a clean slate that still has the tap-to-enter accounts.
+// Wipe staff + attendance, then restore the seeded roster, so a pitch can start
+// from a clean slate that still has accounts to approve and attendance to show.
 export async function resetDemo(): Promise<void> {
   const { staff, attendance } = await collections();
   await Promise.all([staff.deleteMany({}), attendance.deleteMany({})]);

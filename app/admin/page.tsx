@@ -13,24 +13,11 @@ import { SEED_ADMIN, ADMIN_PASSWORD } from "@/lib/seed";
 export default function AdminLoginPage() {
   const router = useRouter();
   const { setAdmin } = useSession();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Prefilled for the demo, so signing in is a single tap of the button.
+  const [email, setEmail] = useState(SEED_ADMIN.email);
+  const [password, setPassword] = useState(ADMIN_PASSWORD);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [tapping, setTapping] = useState(false);
-
-  async function tapEnter() {
-    setTapping(true);
-    setError("");
-    try {
-      const admin = await api.adminDemoLogin();
-      setAdmin(admin);
-      router.push("/admin/approvals");
-    } catch {
-      setError("We couldn't sign you in. Please try again.");
-      setTapping(false);
-    }
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,26 +39,6 @@ export default function AdminLoginPage() {
 
   return (
     <Screen title="Administrator sign in" onBack="history">
-      <section className="mb-8">
-        <h2 className="mb-1 text-[22px] font-bold text-ink">Demo</h2>
-        <p className="mb-4 text-[16px] text-ink-soft">
-          Tap to enter as the administrator - no password needed.
-        </p>
-        <Button
-          onClick={tapEnter}
-          loading={tapping}
-          loadingLabel="Entering…"
-        >
-          Enter as administrator
-        </Button>
-
-        <div className="mt-8 flex items-center gap-3 text-[16px] text-ink-soft">
-          <span className="h-px flex-1 bg-line" />
-          or sign in manually
-          <span className="h-px flex-1 bg-line" />
-        </div>
-      </section>
-
       <form onSubmit={submit} className="flex flex-col gap-5">
         <TextField
           label="Admin email"
@@ -96,10 +63,7 @@ export default function AdminLoginPage() {
         <Button type="submit" loading={busy} loadingLabel="Signing in…">
           Sign in
         </Button>
-        <Note>
-          Manual login - email <b>{SEED_ADMIN.email}</b>, password{" "}
-          <b>{ADMIN_PASSWORD}</b>.
-        </Note>
+        <Note>Prefilled for the demo - just tap Sign in to enter.</Note>
       </form>
     </Screen>
   );
