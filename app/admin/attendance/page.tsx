@@ -87,7 +87,41 @@ export default function AttendancePage() {
             </Button>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile: a tappable card per record, so nothing crowds a phone. */}
+          <ul className="flex flex-col gap-3 sm:hidden">
+            {records.map((r) => {
+              const s = staffById(r.staffId);
+              return (
+                <li key={r.id}>
+                  <Link
+                    href={`/admin/attendance/${r.id}`}
+                    className="flex items-center gap-3 rounded-[14px] border border-line bg-surface p-3"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={r.photoUrl}
+                      alt=""
+                      loading="lazy"
+                      className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[17px] font-bold text-ink">
+                        {s ? `${s.firstName} ${s.lastName}` : "Unknown"}
+                      </p>
+                      <p className="truncate text-[15px] text-ink-soft">
+                        {s ? departmentName(s.departmentId) : "—"} ·{" "}
+                        {formatTime(r.timestamp)}
+                      </p>
+                    </div>
+                    <StatusBadge tone="success">At office</StatusBadge>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Wider screens: the full table. */}
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-line text-[16px] text-ink-soft">

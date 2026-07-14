@@ -53,16 +53,16 @@ export function AdminShell({
   return (
     <div className="min-h-dvh bg-white">
       <header className="bg-brand text-white">
-        <div className="mx-auto flex min-h-[64px] w-full max-w-[760px] items-center justify-between px-5">
-          <span className="text-[20px] font-bold">TETFUND Admin</span>
+        <div className="mx-auto flex min-h-[64px] w-full max-w-[760px] items-center justify-between px-4 sm:px-5">
+          <span className="text-[18px] font-bold sm:text-[20px]">TETFUND Admin</span>
           <button
             onClick={() => setConfirmOut(true)}
-            className="flex min-h-[48px] items-center rounded-lg px-3 text-[18px] font-bold text-white hover:bg-brand-dark"
+            className="flex min-h-[48px] items-center rounded-lg px-3 text-[16px] font-bold text-white hover:bg-brand-dark sm:text-[18px]"
           >
             Sign out
           </button>
         </div>
-        <div className="mx-auto flex w-full max-w-[760px] gap-1 px-3">
+        <div className="mx-auto flex w-full max-w-[760px] gap-1 px-2 sm:px-3">
           {tabs.map((t) => {
             const active = pathname.startsWith(t.href);
             return (
@@ -70,7 +70,7 @@ export function AdminShell({
                 key={t.href}
                 href={t.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[52px] items-center gap-2 rounded-t-lg px-4 font-[family-name:var(--font-heading)] text-[18px] font-bold ${
+                className={`flex min-h-[52px] items-center gap-2 rounded-t-lg px-3 font-[family-name:var(--font-heading)] text-[17px] font-bold sm:px-4 sm:text-[18px] ${
                   active
                     ? "bg-white text-brand [box-shadow:0_-2px_0_var(--color-accent)_inset]"
                     : "text-white/90 hover:bg-brand-dark"
@@ -88,8 +88,8 @@ export function AdminShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[760px] px-5 py-7">
-        <h1 className="mb-5 text-[28px] font-bold leading-tight text-ink">
+      <main className="mx-auto w-full max-w-[760px] px-4 py-6 sm:px-5 sm:py-7">
+        <h1 className="mb-5 text-[24px] font-bold leading-tight text-ink sm:text-[28px]">
           {title}
         </h1>
         {children}
